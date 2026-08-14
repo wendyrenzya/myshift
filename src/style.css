@@ -136,17 +136,26 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-shift-labels { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .pl-shift-labels input { font-size: .82rem; }
 
-.pl-shift-day { margin-bottom: 14px; }
-.pl-shift-day-label { font-size: .8rem; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
-.pl-shift-cells { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
-.pl-shift-cell {
-  flex: 1; min-width: 84px; background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 8px; cursor: pointer; transition: border-color var(--ease);
+/* ── Kartu shift: satu kartu per shift, berisi 7 baris hari ── */
+.pl-shift-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-xl); margin-bottom: 14px; overflow: hidden;
 }
-.pl-shift-cell:hover { border-color: var(--border-dark); }
-.pl-shift-cell-label { font-size: .64rem; color: var(--text-3); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .02em; }
-.pl-shift-cell-empty { font-size: .72rem; color: var(--text-3); border: 1px dashed var(--border); border-radius: var(--r-sm); text-align: center; padding: 6px 0; }
-.pl-shift-cell-people { display: flex; flex-direction: column; gap: 4px; }
+.pl-shift-card-header {
+  font-size: .82rem; font-weight: 700; color: var(--white);
+  background: var(--module-color, var(--accent)); padding: 10px 14px; letter-spacing: .01em;
+}
+.pl-shift-card-rows { padding: 2px 12px; }
+.pl-shift-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background var(--ease);
+}
+.pl-shift-row:last-child { border-bottom: none; }
+.pl-shift-row:active { background: var(--bg-input); }
+.pl-shift-row-day { font-size: .78rem; font-weight: 600; color: var(--text-2); flex-shrink: 0; width: 92px; }
+.pl-shift-row-people { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; flex: 1; }
+.pl-shift-cell-empty { font-size: .72rem; color: var(--text-3); border: 1px dashed var(--border); border-radius: var(--r-sm); text-align: center; padding: 5px 10px; flex-shrink: 0; }
 .pl-shift-chip {
   display: flex; align-items: center; gap: 5px;
   border: 1px solid; border-radius: 999px; padding: 3px 8px;
@@ -193,11 +202,12 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-onboard-title { font-size: .95rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
 .pl-onboard-sub { font-size: .8rem; color: var(--text-3); line-height: 1.45; }
 
-/* ── Tombol "Minggu ini" di navigasi minggu ── */
-.pl-week-nav-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* ── Tombol "Minggu ini" — link kecil rata kiri di atas navigasi minggu ── */
 .pl-week-today-btn {
+  display: block;
   background: none; border: none; color: var(--module-color, var(--accent));
-  font-size: .7rem; font-weight: 700; cursor: pointer; padding: 1px 4px;
+  font-size: .78rem; font-weight: 700; cursor: pointer; padding: 2px 4px;
+  margin: 0 0 6px 2px; text-align: left;
   text-decoration: none; animation: pl-breathe 2.4s ease-in-out infinite;
 }
 @keyframes pl-breathe {
