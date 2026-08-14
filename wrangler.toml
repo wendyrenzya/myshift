@@ -1,0 +1,13 @@
+name = "myshift"
+compatibility_date = "2026-08-14"
+
+# Custom domain dideklarasikan di sini (bukan lewat dashboard) — Workers Static
+# Assets otomatis re-attach domain ini tiap `wrangler deploy`.
+routes = [
+  { pattern = "myshift.my.id", custom_domain = true }
+]
+
+# Situs statis murni (SPA satu halaman) — tidak ada logic di sisi Worker.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
