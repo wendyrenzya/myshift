@@ -130,8 +130,9 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-person-chip button { background: none; border: none; cursor: pointer; color: var(--text-3); padding: 2px; display: flex; }
 
 .pl-shift-settings { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 14px; margin-bottom: 14px; }
-.pl-shift-count-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.pl-shift-count-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 4px; }
 .pl-shift-count-row input[type=number] { width: 70px; flex: none; }
+.pl-shift-count-row .pl-list-empty { flex: 1; min-width: 0; text-align: left; }
 .pl-shift-labels { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .pl-shift-labels input { font-size: .82rem; }
 
