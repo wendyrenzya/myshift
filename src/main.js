@@ -15,6 +15,8 @@ let shiftPersonnel = [], shiftConfig = null, shiftAssignments = []
 let showShiftSettings = false
 let shiftWeekStart = fmtYMD(mondayOfWeek(new Date()))
 let activeShiftCell = null   // { day, shift } saat sheet assign personil terbuka
+let showShareSheet = false
+let sharing = false          // lagi generate JPG/PDF (disable tombol biar gak double-tap)
 
 // ── Load ──
 async function loadShiftData() {
@@ -221,6 +223,150 @@ async function toggleShiftAssign(pid) {
   render()
 }
 
+// ══════════════════════════════════════════════════════════
+// ── EKSPOR / BAGIKAN (JPG & PDF) ──
+// ══════════════════════════════════════════════════════════
+
+function buildExportCard() {
+  const n = shiftConfig.shifts_per_day
+  const labels = shiftConfig.shift_labels
+  const start = new Date(shiftWeekStart + 'T00:00:00')
+
+  let daysHtml = ''
+  for (let di = 0; di < 7; di++) {
+    const d = new Date(start); d.setDate(start.getDate() + di)
+    const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
+    let rowsHtml = ''
+    for (let si = 0; si < n; si++) {
+      const assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === di && a.shift_index === si)
+      const people = (assign ? assign.personnel_ids : []).map(pid => shiftPersonnel.find(p => p.id === pid)).filter(Boolean)
+      rowsHtml += `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${si < n - 1 ? 'border-bottom:1px solid #EEEEEC' : ''}">
+          <div style="width:92px;flex-shrink:0;font-size:12px;font-weight:700;color:#6B6B6B;text-transform:uppercase;letter-spacing:.02em">${esc(labels[si] || ('Shift ' + (si + 1)))}</div>
+          <div style="flex:1;display:flex;flex-wrap:wrap;gap:6px">
+            ${people.length === 0
+              ? '<span style="font-size:13px;color:#B0B0AC">— belum ada —</span>'
+              : people.map(p => `<span style="display:inline-flex;align-items:center;gap:5px;border:1px solid ${p.color};border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;color:#1A1A1A"><span style="width:8px;height:8px;border-radius:50%;background:${p.color};display:inline-block"></span>${esc(p.name)}</span>`).join('')}
+          </div>
+        </div>`
+    }
+    daysHtml += `
+      <div style="margin-bottom:14px">
+        <div style="font-size:13.5px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${dayLabel}</div>
+        <div style="background:#FAFAF8;border:1px solid #EEEEEC;border-radius:12px;padding:4px 12px">${rowsHtml}</div>
+      </div>`
+  }
+
+  const card = document.createElement('div')
+  card.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:#ffffff;padding:32px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
+  card.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="font-size:22px;font-weight:800;color:#1A1A1A">Jadwal Shift</div>
+      <div style="font-size:13px;font-weight:700;color:#E11D48;background:#FFE4E6;padding:5px 12px;border-radius:999px">${fmtWeekRange(shiftWeekStart)}</div>
+    </div>
+    <div style="height:1px;background:#EEEEEC;margin:16px 0 20px"></div>
+    ${daysHtml}
+    <div style="margin-top:8px;text-align:center;font-size:11.5px;color:#B0B0AC">Dibuat dengan MyShift · myshift.my.id · ${new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+  `
+  document.body.appendChild(card)
+  return card
+}
+
+async function captureShiftCanvas() {
+  const { default: html2canvas } = await import('html2canvas')
+  const card = buildExportCard()
+  try {
+    const canvas = await html2canvas(card, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+    return canvas
+  } finally {
+    card.remove()
+  }
+}
+
+function exportFilename(ext) {
+  return `jadwal-shift-${shiftWeekStart}.${ext}`
+}
+
+async function shareFileOrDownload(blob, filename, mime) {
+  const file = new File([blob], filename, { type: mime })
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Jadwal Shift' })
+      return
+    } catch (err) {
+      if (err && err.name === 'AbortError') return // user batal share, jangan fallback ke download
+    }
+  }
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 4000)
+}
+
+async function shareAsImage() {
+  if (sharing) return
+  sharing = true; showShareSheet = false; render()
+  try {
+    const canvas = await captureShiftCanvas()
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92))
+    await shareFileOrDownload(blob, exportFilename('jpg'), 'image/jpeg')
+  } catch (err) {
+    console.error('Gagal membuat JPG:', err)
+    alert('Gagal membuat gambar. Coba lagi.')
+  } finally {
+    sharing = false; render()
+  }
+}
+
+async function shareAsPDF() {
+  if (sharing) return
+  sharing = true; showShareSheet = false; render()
+  try {
+    const [canvas, { jsPDF }] = await Promise.all([captureShiftCanvas(), import('jspdf')])
+    const imgData = canvas.toDataURL('image/jpeg', 0.95)
+    const pdf = new jsPDF({ unit: 'px', format: [canvas.width, canvas.height] })
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height)
+    const blob = pdf.output('blob')
+    await shareFileOrDownload(blob, exportFilename('pdf'), 'application/pdf')
+  } catch (err) {
+    console.error('Gagal membuat PDF:', err)
+    alert('Gagal membuat PDF. Coba lagi.')
+  } finally {
+    sharing = false; render()
+  }
+}
+
+function renderShareSheet() {
+  return `
+    <div class="pl-overlay" id="pl-share-overlay">
+      <div class="pl-sheet">
+        <div class="pl-sheet-title">Bagikan Jadwal — ${fmtWeekRange(shiftWeekStart)}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button type="button" class="pl-share-opt" id="pl-share-jpg">
+            ${svgIcon('image').replace('<svg ', '<svg style="width:18px;height:18px" ')}
+            <span>Simpan sebagai JPG</span>
+          </button>
+          <button type="button" class="pl-share-opt" id="pl-share-pdf">
+            ${svgIcon('fileText').replace('<svg ', '<svg style="width:18px;height:18px" ')}
+            <span>Simpan sebagai PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+function wireShareSheet() {
+  const overlay = app.querySelector('#pl-share-overlay')
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { showShareSheet = false; render() } })
+  app.querySelector('#pl-share-jpg').addEventListener('click', shareAsImage)
+  app.querySelector('#pl-share-pdf').addEventListener('click', shareAsPDF)
+}
+
 function render() {
   const ready = shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0
   app.innerHTML = `
@@ -239,8 +385,12 @@ function render() {
         <button class="pl-week-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
       </div>
       ${renderShiftGrid()}
+      <button type="button" id="pl-share-btn" class="pl-submit" style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:7px" ${sharing ? 'disabled' : ''}>
+        ${svgIcon('share').replace('<svg ', '<svg style="width:15px;height:15px" ')} ${sharing ? 'Membuat file…' : 'Bagikan Jadwal'}
+      </button>
     `}
     ${activeShiftCell ? renderShiftSheet() : ''}
+    ${showShareSheet ? renderShareSheet() : ''}
   `
   app.querySelector('#pl-shift-settings-toggle').addEventListener('click', () => { showShiftSettings = !showShiftSettings; render() })
   if (showShiftSettings) wireShiftSettings()
@@ -253,8 +403,10 @@ function render() {
         render()
       })
     })
+    app.querySelector('#pl-share-btn').addEventListener('click', () => { showShareSheet = true; render() })
   }
   if (activeShiftCell) wireShiftSheet()
+  if (showShareSheet) wireShareSheet()
 }
 
 function esc(s) {

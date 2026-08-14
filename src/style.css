@@ -173,3 +173,16 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 }
 .pl-sheet-chip.checked { color: #fff; }
 .pl-sheet-conflict { font-size: .65rem; opacity: .8; margin-left: 2px; }
+
+.pl-share-opt {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 12px 14px;
+  font-size: .88rem; font-weight: 600; color: var(--text);
+  cursor: pointer; font-family: inherit;
+}
+.pl-share-opt:active { transform: var(--active-press); }
+.pl-share-opt svg { flex-shrink: 0; color: var(--module-color, var(--accent)); }
+
+.pl-submit:disabled { opacity: .6; cursor: default; }
