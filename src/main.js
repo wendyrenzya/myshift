@@ -54,18 +54,28 @@ function shiftWeekAdd(deltaDays) {
   shiftWeekStart = fmtYMD(d)
 }
 
+function isCurrentWeek() {
+  return shiftWeekStart === fmtYMD(mondayOfWeek(new Date()))
+}
+
 function findOtherShiftSameDay(pid, day, currentShiftIdx) {
   const a = shiftAssignments.find(x => x.week_start === shiftWeekStart && x.day_index === day && x.shift_index !== currentShiftIdx && (x.personnel_ids || []).includes(pid))
   if (!a) return null
   return shiftConfig.shift_labels[a.shift_index] || `Shift ${a.shift_index + 1}`
 }
 
-function renderShiftSettingsPanel() {
+function renderShiftSettingsPanel(onboarding) {
   const n = shiftConfig ? shiftConfig.shifts_per_day : 1
   const labels = shiftConfig ? shiftConfig.shift_labels : []
   return `
     <div class="pl-shift-settings">
-      <div class="pl-proj-detail-label">Personil</div>
+      ${onboarding ? `
+        <div class="pl-onboard-intro">
+          <div class="pl-onboard-title">Yuk, atur jadwal shift</div>
+          <div class="pl-onboard-sub">Tambahkan nama tim, lalu tentukan berapa kali shift dalam sehari. Jadwal mingguan otomatis muncul setelah ini terisi.</div>
+        </div>
+      ` : ''}
+      <div class="pl-proj-detail-label">1. Personil</div>
       <div class="pl-tag-wrap" style="margin-bottom:10px">
         ${shiftPersonnel.length === 0 ? '<span class="pl-list-empty" style="padding:4px 0">Belum ada personil.</span>' : shiftPersonnel.map(p => `
           <span class="pl-person-chip" style="border-color:${p.color}">
@@ -79,7 +89,7 @@ function renderShiftSettingsPanel() {
         <button type="button" class="pl-tag-add-btn" id="pl-person-add">+ Tambah</button>
       </div>
 
-      <div class="pl-proj-detail-label" style="margin-top:16px">Jumlah shift per hari</div>
+      <div class="pl-proj-detail-label" style="margin-top:16px">2. Jumlah shift per hari</div>
       <div class="pl-shift-count-row">
         <input id="pl-shift-count" type="number" min="1" max="8" value="${n}" />
         <span class="pl-list-empty" style="padding:0">tiap hari dibagi rata</span>
@@ -103,7 +113,13 @@ function wireShiftSettings() {
   app.querySelector('#pl-person-add').addEventListener('click', addPerson)
   app.querySelector('#pl-person-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addPerson() } })
   app.querySelectorAll('.pl-person-del').forEach(btn => {
-    btn.addEventListener('click', () => deleteShiftPersonnel(btn.dataset.id))
+    btn.addEventListener('click', () => {
+      const p = shiftPersonnel.find(x => x.id === btn.dataset.id)
+      const name = p ? p.name : 'personil ini'
+      if (confirm(`Hapus ${name} dari daftar personil? Jadwal yang sudah diisi untuk orang ini juga akan dikosongkan.`)) {
+        deleteShiftPersonnel(btn.dataset.id)
+      }
+    })
   })
   app.querySelector('#pl-shift-count').addEventListener('change', e => {
     updateShiftCount(Number(e.target.value) || 1)
@@ -167,7 +183,7 @@ function renderShiftGrid() {
       html += `<div class="pl-shift-cell" data-day="${di}" data-shift="${si}">
         <div class="pl-shift-cell-label">${esc(labels[si] || ('Shift ' + (si + 1)))}</div>
         ${people.length === 0
-          ? '<div class="pl-shift-cell-empty">+ isi</div>'
+          ? '<div class="pl-shift-cell-empty">+ isi personil</div>'
           : `<div class="pl-shift-cell-people">${people.map(p => `<span class="pl-shift-chip" style="border-color:${p.color};background:${p.color}22"><span class="pl-shift-dot" style="background:${p.color}"></span>${esc(p.name.split(' ')[0])}</span>`).join('')}</div>`}
       </div>`
     }
@@ -187,6 +203,7 @@ function renderShiftSheet() {
     <div class="pl-overlay" id="pl-shift-overlay">
       <div class="pl-sheet">
         <div class="pl-sheet-title">${esc(label)} — ${dayLabel}</div>
+        <div class="pl-sheet-hint">Tap nama untuk menandai siapa saja yang masuk shift ini.</div>
         <div class="pl-sheet-chips">
           ${shiftPersonnel.map(p => {
             const checked = assignedIds.includes(p.id)
@@ -225,7 +242,7 @@ async function toggleShiftAssign(pid) {
 
 // ══════════════════════════════════════════════════════════
 // ── EKSPOR / BAGIKAN (JPG & PDF) ──
-// ══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 
 function buildExportCard() {
   const n = shiftConfig.shifts_per_day
@@ -369,19 +386,17 @@ function wireShareSheet() {
 
 function render() {
   const ready = shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0
+  const forceSettings = !ready || showShiftSettings
   app.innerHTML = `
-    <button id="pl-shift-settings-toggle" class="pl-settings-toggle">${svgIcon('wrench').replace('<svg ', '<svg style="width:15px;height:15px" ')} ${showShiftSettings ? 'Tutup Pengaturan' : 'Kelola Personil & Shift'}</button>
-    ${showShiftSettings ? renderShiftSettingsPanel() : ''}
-    ${!ready ? `
-      <div class="empty">
-        <div class="empty-icon">${USERS32}</div>
-        <div class="empty-title">${shiftPersonnel.length === 0 ? 'Tambah personil dulu' : 'Atur jumlah shift dulu'}</div>
-        <div class="empty-sub">Buka "Kelola Personil & Shift" di atas untuk mulai.</div>
-      </div>
-    ` : `
+    ${ready ? `<button id="pl-shift-settings-toggle" class="pl-settings-toggle">${svgIcon('wrench').replace('<svg ', '<svg style="width:15px;height:15px" ')} ${showShiftSettings ? 'Tutup Pengaturan' : 'Kelola Personil & Shift'}</button>` : ''}
+    ${forceSettings ? renderShiftSettingsPanel(!ready) : ''}
+    ${!ready ? '' : `
       <div class="pl-week-nav">
         <button class="pl-week-btn" id="pl-week-prev" aria-label="Minggu sebelumnya">&lsaquo;</button>
-        <span class="pl-week-label">${fmtWeekRange(shiftWeekStart)}</span>
+        <div class="pl-week-nav-center">
+          <span class="pl-week-label">${fmtWeekRange(shiftWeekStart)}</span>
+          ${!isCurrentWeek() ? `<button type="button" class="pl-week-today-btn" id="pl-week-today">Minggu ini</button>` : ''}
+        </div>
         <button class="pl-week-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
       </div>
       ${renderShiftGrid()}
@@ -392,18 +407,26 @@ function render() {
     ${activeShiftCell ? renderShiftSheet() : ''}
     ${showShareSheet ? renderShareSheet() : ''}
   `
-  app.querySelector('#pl-shift-settings-toggle').addEventListener('click', () => { showShiftSettings = !showShiftSettings; render() })
-  if (showShiftSettings) wireShiftSettings()
+  if (ready) {
+    app.querySelector('#pl-shift-settings-toggle').addEventListener('click', () => { showShiftSettings = !showShiftSettings; render() })
+  }
+  if (forceSettings) wireShiftSettings()
   if (ready) {
     app.querySelector('#pl-week-prev').addEventListener('click', () => { shiftWeekAdd(-7); render() })
     app.querySelector('#pl-week-next').addEventListener('click', () => { shiftWeekAdd(7); render() })
+    const todayBtn = app.querySelector('#pl-week-today')
+    if (todayBtn) todayBtn.addEventListener('click', () => { shiftWeekStart = fmtYMD(mondayOfWeek(new Date())); render() })
     app.querySelectorAll('.pl-shift-cell').forEach(cell => {
       cell.addEventListener('click', () => {
         activeShiftCell = { day: Number(cell.dataset.day), shift: Number(cell.dataset.shift) }
         render()
       })
     })
-    app.querySelector('#pl-share-btn').addEventListener('click', () => { showShareSheet = true; render() })
+    app.querySelector('#pl-share-btn').addEventListener('click', () => {
+      const hasAny = shiftAssignments.some(a => a.week_start === shiftWeekStart && (a.personnel_ids || []).length > 0)
+      if (!hasAny && !confirm('Jadwal minggu ini masih kosong. Tetap lanjut bagikan?')) return
+      showShareSheet = true; render()
+    })
   }
   if (activeShiftCell) wireShiftSheet()
   if (showShareSheet) wireShareSheet()
