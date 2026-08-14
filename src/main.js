@@ -12,7 +12,7 @@ const app = document.getElementById('app')
 // ── State ──
 const SHIFT_COLORS = ['#E11D48','#EA580C','#D97706','#65A30D','#059669','#0891B2','#2563EB','#7C3AED','#C026D3','#DB2777']
 let shiftPersonnel = [], shiftConfig = null, shiftAssignments = []
-let showShiftSettings = false
+let showShiftSettings = true   // popup pengaturan otomatis terbuka saat pertama kali (onboarding)
 let shiftWeekStart = fmtYMD(mondayOfWeek(new Date()))
 let activeShiftCell = null   // { day, shift } saat sheet assign personil terbuka
 let showShareSheet = false
@@ -64,46 +64,55 @@ function findOtherShiftSameDay(pid, day, currentShiftIdx) {
   return shiftConfig.shift_labels[a.shift_index] || `Shift ${a.shift_index + 1}`
 }
 
-function renderShiftSettingsPanel(onboarding) {
+function renderShiftSettingsSheet(onboarding) {
   const n = shiftConfig ? shiftConfig.shifts_per_day : 1
   const labels = shiftConfig ? shiftConfig.shift_labels : []
   return `
-    <div class="pl-shift-settings">
-      ${onboarding ? `
-        <div class="pl-onboard-intro">
-          <div class="pl-onboard-title">Yuk, atur jadwal shift</div>
-          <div class="pl-onboard-sub">Tambahkan nama tim, lalu tentukan berapa kali shift dalam sehari. Jadwal mingguan otomatis muncul setelah ini terisi.</div>
+    <div class="pl-overlay" id="pl-shift-settings-overlay">
+      <div class="pl-sheet">
+        <div class="pl-sheet-title">Kelola Personil & Shift</div>
+        ${onboarding ? `
+          <div class="pl-onboard-intro">
+            <div class="pl-onboard-title">Yuk, atur jadwal shift</div>
+            <div class="pl-onboard-sub">Tambahkan nama tim, lalu tentukan berapa kali shift dalam sehari. Jadwal mingguan otomatis muncul setelah ini terisi.</div>
+          </div>
+        ` : ''}
+        <div class="pl-proj-detail-label">1. Personil</div>
+        <div class="pl-tag-wrap" style="margin-bottom:10px">
+          ${shiftPersonnel.length === 0 ? '<span class="pl-list-empty" style="padding:4px 0">Belum ada personil.</span>' : shiftPersonnel.map(p => `
+            <span class="pl-person-chip" style="border-color:${p.color}">
+              <span class="pl-shift-dot" style="background:${p.color}"></span>${esc(p.name)}
+              <button type="button" class="pl-person-del" data-id="${p.id}">${svgIcon('closeIcon').replace('<svg ', '<svg style="width:11px;height:11px" ')}</button>
+            </span>
+          `).join('')}
         </div>
-      ` : ''}
-      <div class="pl-proj-detail-label">1. Personil</div>
-      <div class="pl-tag-wrap" style="margin-bottom:10px">
-        ${shiftPersonnel.length === 0 ? '<span class="pl-list-empty" style="padding:4px 0">Belum ada personil.</span>' : shiftPersonnel.map(p => `
-          <span class="pl-person-chip" style="border-color:${p.color}">
-            <span class="pl-shift-dot" style="background:${p.color}"></span>${esc(p.name)}
-            <button type="button" class="pl-person-del" data-id="${p.id}">${svgIcon('closeIcon').replace('<svg ', '<svg style="width:11px;height:11px" ')}</button>
-          </span>
-        `).join('')}
-      </div>
-      <div class="pl-tag-input-row">
-        <input id="pl-person-input" type="text" placeholder="Nama personil…" autocomplete="off" />
-        <button type="button" class="pl-tag-add-btn" id="pl-person-add">+ Tambah</button>
-      </div>
+        <div class="pl-tag-input-row">
+          <input id="pl-person-input" type="text" placeholder="Nama personil…" autocomplete="off" />
+          <button type="button" class="pl-tag-add-btn" id="pl-person-add">+ Tambah</button>
+        </div>
 
-      <div class="pl-proj-detail-label" style="margin-top:16px">2. Jumlah shift per hari</div>
-      <div class="pl-shift-count-row">
-        <input id="pl-shift-count" type="number" min="1" max="8" value="${n}" />
-        <span class="pl-list-empty" style="padding:0">tiap hari dibagi rata</span>
-      </div>
-      ${shiftConfig ? `
-        <div class="pl-shift-labels">
-          ${labels.map((l, i) => `<input type="text" class="pl-shift-label-input" data-i="${i}" value="${esc(l)}" placeholder="Nama shift ${i + 1}…" />`).join('')}
+        <div class="pl-proj-detail-label" style="margin-top:16px">2. Jumlah shift per hari</div>
+        <div class="pl-shift-count-row">
+          <input id="pl-shift-count" type="number" min="1" max="8" value="${n}" />
+          <span class="pl-list-empty" style="padding:0">tiap hari dibagi rata</span>
         </div>
-      ` : ''}
+        ${shiftConfig ? `
+          <div class="pl-proj-detail-label" style="margin-top:16px">3. Nama tiap shift</div>
+          <div class="pl-sheet-hint">Ganti label default ("Shift 1", "Shift 2", dst) sesuai kebutuhan, misalnya Pagi / Siang / Malam.</div>
+          <div class="pl-shift-labels">
+            ${labels.map((l, i) => `<input type="text" class="pl-shift-label-input" data-i="${i}" value="${esc(l)}" placeholder="Nama shift ${i + 1}…" />`).join('')}
+          </div>
+        ` : ''}
+        <button type="button" class="pl-submit" id="pl-shift-settings-done" style="margin-top:16px">Selesai</button>
+      </div>
     </div>
   `
 }
 
-function wireShiftSettings() {
+function wireShiftSettingsSheet() {
+  const overlay = app.querySelector('#pl-shift-settings-overlay')
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { showShiftSettings = false; render() } })
+  app.querySelector('#pl-shift-settings-done').addEventListener('click', () => { showShiftSettings = false; render() })
   const addPerson = async () => {
     const input = app.querySelector('#pl-person-input')
     const v = input.value.trim()
@@ -242,7 +251,7 @@ async function toggleShiftAssign(pid) {
 
 // ══════════════════════════════════════════════════════════
 // ── EKSPOR / BAGIKAN (JPG & PDF) ──
-// ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 
 function buildExportCard() {
   const n = shiftConfig.shifts_per_day
@@ -386,11 +395,15 @@ function wireShareSheet() {
 
 function render() {
   const ready = shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0
-  const forceSettings = !ready || showShiftSettings
   app.innerHTML = `
-    ${ready ? `<button id="pl-shift-settings-toggle" class="pl-settings-toggle">${svgIcon('wrench').replace('<svg ', '<svg style="width:15px;height:15px" ')} ${showShiftSettings ? 'Tutup Pengaturan' : 'Kelola Personil & Shift'}</button>` : ''}
-    ${forceSettings ? renderShiftSettingsPanel(!ready) : ''}
-    ${!ready ? '' : `
+    <button id="pl-shift-settings-toggle" class="pl-settings-toggle">${svgIcon('wrench').replace('<svg ', '<svg style="width:15px;height:15px" ')} Kelola Personil & Shift</button>
+    ${!ready ? `
+      <div class="empty">
+        <div class="empty-icon">${USERS32}</div>
+        <div class="empty-title">${shiftPersonnel.length === 0 ? 'Tambah personil dulu' : 'Atur jumlah shift dulu'}</div>
+        <div class="empty-sub">Buka "Kelola Personil & Shift" di atas untuk mulai.</div>
+      </div>
+    ` : `
       <div class="pl-week-nav">
         <button class="pl-week-btn" id="pl-week-prev" aria-label="Minggu sebelumnya">&lsaquo;</button>
         <div class="pl-week-nav-center">
@@ -404,13 +417,12 @@ function render() {
         ${svgIcon('share').replace('<svg ', '<svg style="width:15px;height:15px" ')} ${sharing ? 'Membuat file…' : 'Bagikan Jadwal'}
       </button>
     `}
+    ${showShiftSettings ? renderShiftSettingsSheet(!ready) : ''}
     ${activeShiftCell ? renderShiftSheet() : ''}
     ${showShareSheet ? renderShareSheet() : ''}
   `
-  if (ready) {
-    app.querySelector('#pl-shift-settings-toggle').addEventListener('click', () => { showShiftSettings = !showShiftSettings; render() })
-  }
-  if (forceSettings) wireShiftSettings()
+  app.querySelector('#pl-shift-settings-toggle').addEventListener('click', () => { showShiftSettings = true; render() })
+  if (showShiftSettings) wireShiftSettingsSheet()
   if (ready) {
     app.querySelector('#pl-week-prev').addEventListener('click', () => { shiftWeekAdd(-7); render() })
     app.querySelector('#pl-week-next').addEventListener('click', () => { shiftWeekAdd(7); render() })
