@@ -7,10 +7,20 @@ const USERS32 = svgIcon('usersRound').replace('<svg ', '<svg style="width:32px;h
 const DAYS_ID   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu']
 const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
+const FAQ_ITEMS = [
+  { q: 'Apa itu MyShift?', a: 'Aplikasi buat atur jadwal shift tim — bisa buat kerja kantoran, ronda malam, atau apa aja yang butuh jadwal bergilir mingguan.' },
+  { q: 'Data disimpan di mana?', a: 'Semua data (jadwal, personil, catatan) tersimpan langsung di HP/browser kamu (IndexedDB), bukan di server. Jadi gak perlu akun buat mulai pakai.' },
+  { q: 'Gimana kalau HP hilang atau data browser dihapus?', a: 'Karena datanya lokal di perangkat, kalau cache/data browser dihapus atau ganti HP, jadwal yang belum di-backup akan ikut hilang. Pakai tombol "Backup Data" di halaman jadwal secara rutin, simpan file JSON-nya, lalu "Import Data" buat mulihin di perangkat baru.' },
+  { q: 'Bisa dipakai bareng banyak admin sekaligus?', a: 'Untuk sekarang datanya per-perangkat (belum ada sinkronisasi cloud), jadi paling cocok satu orang yang atur jadwal, lalu hasilnya dibagikan (JPG/PDF) ke tim lewat WhatsApp atau lainnya.' },
+  { q: 'Berapa banyak jadwal & personil yang bisa dibuat?', a: 'Gak dibatasi — bisa bikin banyak jadwal (misalnya Shift Kantor, Shift Ronda Malam) dan masing-masing punya personil sendiri-sendiri.' },
+]
+
 const app = document.getElementById('app')
 
 // ── State ──
 const SHIFT_COLORS = ['#E11D48','#EA580C','#D97706','#65A30D','#059669','#0891B2','#2563EB','#7C3AED','#C026D3','#DB2777']
+let showLanding = true           // splash/landing pas pertama buka (per sesi)
+let openFaqIndex = null          // index FAQ yang lagi kebuka
 let shiftSchedules = []          // daftar jadwal shift (Shift Kantor, Shift Ronda Malam, dst)
 let activeScheduleId = null      // jadwal yang lagi dibuka; null = halaman daftar jadwal
 let showScheduleForm = false     // sheet buat jadwal baru
@@ -20,10 +30,32 @@ let shiftLeaves = []         // { personnel_id, date } — personil yang libur, 
 let showShiftSettings = false    // popup kelola personil & shift utk jadwal aktif
 let shiftWeekStart = fmtYMD(mondayOfWeek(new Date()))
 let activeShiftCell = null   // { day, shift } saat sheet assign personil terbuka
+let lastToggledPid = null    // buat trigger animasi pop pas assign/undo
 let showShareSheet = false
 let shiftNoteText = ''       // catatan minggu yang lagi dibuka
 let showNotesSheet = false   // popup catatan
 let sharing = false          // lagi generate JPG/PDF (disable tombol biar gak double-tap)
+
+// ── Suara pop (disintesis, gak perlu file audio) ──
+let audioCtx = null
+function playPopSound(added) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)()
+    if (audioCtx.state === 'suspended') audioCtx.resume()
+    const ctx = audioCtx
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(added ? 520 : 340, now)
+    osc.frequency.exponentialRampToValueAtTime(added ? 880 : 210, now + 0.12)
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.22, now + 0.015)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.17)
+    osc.connect(gain); gain.connect(ctx.destination)
+    osc.start(now); osc.stop(now + 0.19)
+  } catch (e) { /* suara opsional, abaikan kalau AudioContext gak tersedia */ }
+}
 
 // ── Load ──
 async function loadSchedules() {
@@ -123,6 +155,53 @@ function findOtherShiftSameDay(pid, day, currentShiftIdx) {
 }
 
 // ══════════════════════════════════════════════════════════
+// ── LANDING PAGE (splash pertama + FAQ) ──
+// ══════════════════════════════════════════════════════════
+
+function renderLanding() {
+  return `
+    <div class="pl-landing">
+      <div class="pl-landing-hero">
+        <div class="pl-landing-icon">${svgIcon('sparkles').replace('<svg ', '<svg style="width:34px;height:34px" ')}</div>
+        <div class="pl-landing-title">MyShift</div>
+        <div class="pl-landing-sub">Atur jadwal shift tim kamu — kantor, ronda malam, apa aja — tanpa ribet. Semua rapi dalam satu genggaman.</div>
+        <button type="button" class="pl-landing-cta" id="pl-landing-start">
+          Mulai ${svgIcon('chevronDown').replace('<svg ', '<svg style="width:16px;height:16px;transform:rotate(-90deg)" ')}
+        </button>
+      </div>
+      <div class="pl-landing-features">
+        <div class="pl-feature-card">${svgIcon('usersRound').replace('<svg ', '<svg style="width:22px;height:22px" ')}<div class="pl-feature-card-title">Banyak Jadwal</div></div>
+        <div class="pl-feature-card">${svgIcon('share').replace('<svg ', '<svg style="width:22px;height:22px" ')}<div class="pl-feature-card-title">Bagikan Sekali Tap</div></div>
+        <div class="pl-feature-card">${svgIcon('download').replace('<svg ', '<svg style="width:22px;height:22px" ')}<div class="pl-feature-card-title">Backup Kapan Aja</div></div>
+      </div>
+      <div class="pl-faq">
+        <div class="pl-faq-title">Pertanyaan Umum</div>
+        ${FAQ_ITEMS.map((item, i) => `
+          <div class="pl-faq-item">
+            <button type="button" class="pl-faq-q ${openFaqIndex === i ? 'open' : ''}" data-i="${i}">
+              <span>${esc(item.q)}</span>
+              ${svgIcon('chevronDown').replace('<svg ', '<svg style="width:16px;height:16px" ')}
+            </button>
+            ${openFaqIndex === i ? `<div class="pl-faq-a">${esc(item.a)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+}
+
+function wireLanding() {
+  app.querySelector('#pl-landing-start').addEventListener('click', () => { showLanding = false; render() })
+  app.querySelectorAll('.pl-faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.i)
+      openFaqIndex = openFaqIndex === i ? null : i
+      render()
+    })
+  })
+}
+
+// ══════════════════════════════════════════════════════════
 // ── HALAMAN DAFTAR JADWAL (home) ──
 // ══════════════════════════════════════════════════════════
 
@@ -150,6 +229,17 @@ function renderScheduleHome() {
       </div>
     `}
     <button type="button" class="pl-submit" id="pl-sched-add">+ Tambah Jadwal Shift</button>
+
+    <div class="pl-backup-box">
+      <div class="pl-backup-title">${svgIcon('download').replace('<svg ', '<svg style="width:15px;height:15px" ')} Backup &amp; Import Data</div>
+      <div class="pl-backup-hint">Data cuma tersimpan di perangkat ini. Backup rutin biar gak hilang kalau ganti HP atau cache browser kehapus.</div>
+      <div class="pl-backup-actions">
+        <button type="button" class="pl-backup-btn" id="pl-backup-export">${svgIcon('download').replace('<svg ', '<svg style="width:16px;height:16px" ')} Backup (JSON)</button>
+        <button type="button" class="pl-backup-btn" id="pl-backup-import">${svgIcon('upload').replace('<svg ', '<svg style="width:16px;height:16px" ')} Import</button>
+      </div>
+      <input type="file" id="pl-backup-file-input" accept="application/json,.json" style="display:none" />
+    </div>
+
     ${showScheduleForm ? renderScheduleFormSheet() : ''}
   `
 }
@@ -164,6 +254,13 @@ function wireScheduleHome() {
   })
   app.querySelectorAll('.pl-sched-del').forEach(btn => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); deleteSchedule(btn.dataset.id) })
+  })
+  app.querySelector('#pl-backup-export').addEventListener('click', exportBackup)
+  app.querySelector('#pl-backup-import').addEventListener('click', () => app.querySelector('#pl-backup-file-input').click())
+  app.querySelector('#pl-backup-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0]
+    if (file) importBackupFile(file)
+    e.target.value = ''
   })
   if (showScheduleForm) wireScheduleFormSheet()
 }
@@ -230,6 +327,46 @@ async function enterSchedule(id) {
   activeShiftCell = null
   showShareSheet = false
   showNotesSheet = false
+  render()
+}
+
+// ══════════════════════════════════════════════════════════
+// ── BACKUP & IMPORT (JSON, mencakup semua jadwal) ──
+// ══════════════════════════════════════════════════════════
+
+const BACKUP_STORES = ['shift_schedules', 'shift_personnel', 'shift_config', 'shift_assignments', 'shift_notes', 'shift_leaves']
+
+async function exportBackup() {
+  const [schedules, personnel, configs, assignments, notes, leaves] = await Promise.all(BACKUP_STORES.map(getAllLocal))
+  const backup = { app: 'myshift', version: 1, exported_at: new Date().toISOString(), schedules, personnel, configs, assignments, notes, leaves }
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+  await shareFileOrDownload(blob, `myshift-backup-${fmtYMD(new Date())}.json`, 'application/json', 'Backup MyShift')
+}
+
+async function importBackupFile(file) {
+  let data
+  try {
+    data = JSON.parse(await file.text())
+  } catch (e) {
+    alert('File tidak valid. Pastikan file JSON hasil backup MyShift.')
+    return
+  }
+  if (data.app !== 'myshift' || !Array.isArray(data.schedules)) {
+    alert('File tidak valid. Pastikan file JSON hasil backup MyShift.')
+    return
+  }
+  if (!confirm('Import akan MENGGANTI semua data yang ada sekarang (semua jadwal, personil, dan histori) dengan isi file ini. Lanjutkan?')) return
+  for (const name of BACKUP_STORES) {
+    const existing = await getAllLocal(name)
+    for (const rec of existing) await deleteLocal(name, rec.id)
+  }
+  const map = { shift_schedules: data.schedules, shift_personnel: data.personnel, shift_config: data.configs, shift_assignments: data.assignments, shift_notes: data.notes, shift_leaves: data.leaves }
+  for (const name of BACKUP_STORES) {
+    for (const rec of (map[name] || [])) await putLocal(name, rec)
+  }
+  activeScheduleId = null
+  await loadSchedules()
+  alert('Import berhasil! Data sudah diganti sesuai file backup.')
   render()
 }
 
@@ -425,8 +562,9 @@ function renderShiftSheet() {
             const checked = assignedIds.includes(p.id)
             const other = findOtherShiftSameDay(p.id, day, shift)
             const onLeave = isOnLeave(p.id, day)
+            const justToggled = p.id === lastToggledPid
             return `<div class="pl-sheet-person-row">
-              <button type="button" class="pl-sheet-chip ${checked ? 'checked' : ''} ${onLeave ? 'onleave' : ''}" data-pid="${p.id}" style="border-color:${p.color};${checked ? `background:${p.color}` : ''}">
+              <button type="button" class="pl-sheet-chip ${checked ? 'checked' : ''} ${onLeave ? 'onleave' : ''} ${justToggled ? 'pl-pop' : ''}" data-pid="${p.id}" style="border-color:${p.color};${checked ? `background:${p.color}` : ''}">
                 <span class="pl-shift-dot" style="background:${checked ? '#fff' : p.color}"></span>${esc(p.name)}${onLeave ? '<span class="pl-sheet-conflict">· libur</span>' : (other ? `<span class="pl-sheet-conflict">· sudah di ${esc(other)}</span>` : '')}
               </button>
               <button type="button" class="pl-sheet-leave-btn ${onLeave ? 'active' : ''}" data-leave-pid="${p.id}" aria-label="Tandai libur" title="Tandai libur hari ini">${svgIcon('ban').replace('<svg ', '<svg style="width:15px;height:15px" ')}</button>
@@ -459,11 +597,15 @@ async function toggleShiftAssign(pid) {
   let assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === day && a.shift_index === shift)
   if (!assign) assign = { id: crypto.randomUUID(), schedule_id: activeScheduleId, week_start: shiftWeekStart, day_index: day, shift_index: shift, personnel_ids: [] }
   const idx = assign.personnel_ids.indexOf(pid)
-  if (idx === -1) assign.personnel_ids.push(pid); else assign.personnel_ids.splice(idx, 1)
+  const added = idx === -1
+  if (added) assign.personnel_ids.push(pid); else assign.personnel_ids.splice(idx, 1)
   assign.updated_at = Date.now()
   await putLocal('shift_assignments', assign)
   await loadShiftData()
+  playPopSound(added)
+  lastToggledPid = pid
   render()
+  lastToggledPid = null
 }
 
 async function duplicatePreviousWeek() {
@@ -555,11 +697,11 @@ function exportFilename(ext) {
   return `jadwal-shift-${slug}-${shiftWeekStart}.${ext}`
 }
 
-async function shareFileOrDownload(blob, filename, mime) {
+async function shareFileOrDownload(blob, filename, mime, shareTitle = 'Jadwal Shift') {
   const file = new File([blob], filename, { type: mime })
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'Jadwal Shift' })
+      await navigator.share({ files: [file], title: shareTitle })
       return
     } catch (err) {
       if (err && err.name === 'AbortError') return // user batal share, jangan fallback ke download
@@ -747,6 +889,11 @@ function wireScheduleDetail() {
 // ══════════════════════════════════════════════════════════
 
 function render() {
+  if (showLanding) {
+    app.innerHTML = renderLanding()
+    wireLanding()
+    return
+  }
   app.innerHTML = activeScheduleId ? renderScheduleDetail() : renderScheduleHome()
   if (activeScheduleId) wireScheduleDetail(); else wireScheduleHome()
 }

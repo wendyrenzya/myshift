@@ -16,7 +16,7 @@
   --white:        #FFFFFF;
 
   --accent:       #374151;
-  --module-color: #E11D48;
+  --module-color: #374151; /* graphite, disamakan sama --accent hasil redesign Stitch */
 
   --shadow-sm:    0 1px 2px rgba(0,0,0,.04);
   --shadow-md:    0 2px 8px rgba(0,0,0,.06);
@@ -272,3 +272,64 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-sched-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .pl-sched-back { background: none; border: none; color: var(--text-3); font-size: .8rem; font-weight: 600; cursor: pointer; padding: 4px 0; }
 .pl-sched-header-name { font-size: .85rem; font-weight: 700; color: var(--text); }
+
+/* ── Halaman Landing / Splash ── */
+.pl-landing { padding-top: 8px; }
+.pl-landing-hero { text-align: center; padding: 12px 4px 28px; }
+.pl-landing-icon {
+  width: 64px; height: 64px; margin: 0 auto 16px;
+  background: var(--bg-card); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); box-shadow: var(--shadow-md);
+}
+.pl-landing-title { font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.01em; }
+.pl-landing-sub { font-size: .85rem; color: var(--text-3); line-height: 1.5; max-width: 320px; margin: 0 auto 20px; }
+.pl-landing-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent); color: var(--white); border: none;
+  border-radius: 999px; padding: 12px 22px; font-size: .88rem; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: transform var(--ease-out);
+}
+.pl-landing-cta:active { transform: var(--active-press); }
+
+.pl-landing-features { display: flex; gap: 8px; margin-bottom: 24px; }
+.pl-feature-card {
+  flex: 1; background: var(--bg-card); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm); padding: 16px 10px; text-align: center;
+  color: var(--accent); display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.pl-feature-card-title { font-size: .74rem; font-weight: 600; color: var(--text); line-height: 1.3; }
+
+.pl-faq { background: var(--bg-card); border-radius: var(--r-xl); box-shadow: var(--shadow-sm); padding: 18px 16px; }
+.pl-faq-title { font-size: .95rem; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 12px; }
+.pl-faq-item { border-top: 1px solid var(--border); }
+.pl-faq-item:first-of-type { border-top: none; }
+.pl-faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: none; border: none; text-align: left; padding: 13px 0;
+  font-size: .84rem; font-weight: 600; color: var(--text); cursor: pointer; font-family: inherit;
+}
+.pl-faq-q svg { flex-shrink: 0; color: var(--text-3); transition: transform var(--ease); }
+.pl-faq-q.open svg { transform: rotate(180deg); }
+.pl-faq-a { font-size: .8rem; color: var(--text-3); line-height: 1.5; padding: 0 0 14px; }
+
+/* ── Backup & Import box (di halaman daftar jadwal) ── */
+.pl-backup-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 16px; margin-top: 18px; }
+.pl-backup-title { display: flex; align-items: center; gap: 7px; font-size: .86rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.pl-backup-hint { font-size: .78rem; color: var(--text-3); line-height: 1.5; margin-bottom: 12px; }
+.pl-backup-actions { display: flex; flex-direction: column; gap: 8px; }
+.pl-backup-btn {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 10px; font-size: .82rem; font-weight: 600; color: var(--text);
+  cursor: pointer; font-family: inherit; transition: border-color var(--ease);
+}
+.pl-backup-btn:active { border-color: var(--border-dark); }
+
+/* ── Animasi "pop" saat assign/undo personil di sheet shift ── */
+@keyframes pl-pop-anim {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.pl-pop { animation: pl-pop-anim .25s ease-out; }
