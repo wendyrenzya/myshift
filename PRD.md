@@ -67,3 +67,44 @@ Dipertimbangkan model **freemium flat per akun (bukan per personil)**:
 Ide fitur tambahan — di luar scope MVP, belum dieksekusi. Belum ada
 detail lebih lanjut (metode absen, integrasi ke grid shift yang
 sudah ada, dll — masih perlu digali).
+
+#### Riset teknis: absensi mobile GPS + face matching di web
+Konteks: dibandingin sama fitur Gadjian/Talenta (absensi mobile
+geo-tagging + face matching). Pertanyaan kunci: apakah semua ini
+bisa jalan di web (bukan native app)?
+
+**Batasan browser vs native app:**
+- Bisa di web: ambil koordinat GPS (`navigator.geolocation`), ambil
+  foto dari kamera depan (`getUserMedia`), face matching, liveness
+  check dasar (kedip/gerak kepala/senyum acak).
+- TIDAK bisa di web (khusus native app): deteksi flag mock/fake-GPS
+  dari OS (`isFromMockProvider()` di Android), liveness check
+  berbasis depth-sensor 3D (kayak Face ID TrueDepth), deteksi
+  SSID/BSSID WiFi kantor (browser sengaja nggak dikasih akses ini
+  demi privasi).
+- Konsekuensi: absensi berbasis web tetap BISA dicurangi pakai fake
+  GPS app + foto/video lama kalau nggak ada mitigasi tambahan
+  (server-side cross-check IP, kecepatan pergerakan gak masuk akal,
+  dst). Ini soal menaikkan friction buat curang, bukan menghilangkan
+  celah 100% — berlaku juga di app native, cuma levelnya beda.
+
+**Opsi library liveness detection (open source, buat web):**
+1. Bikin sendiri pakai face-api.js / MediaPipe / TensorFlow.js +
+   instruksi kedip/senyum/gerak kepala — gratis, tapi lemah (bisa
+   ditipu video replay).
+2. **FaceRecognition-LivenessDetection-Javascript** (Faceplugin-ltd,
+   GitHub) — open source, jalan penuh di browser (ONNX Runtime Web +
+   OpenCV.js), klaim iBeta level 2 anti-spoofing (deteksi foto
+   cetak, video replay, topeng 3D, deepfake), semua proses on-device
+   jadi nggak ada biaya API/cloud. Kandidat paling masuk akal buat
+   MyShift kalau tetap web-based.
+3. AWS Amplify Face Liveness / Luxand.cloud — SDK gratis tapi
+   deteksi jalan di server cloud mereka (bayar per-check, data
+   keluar ke pihak ketiga). Dihindari kalau mau tetap murah &
+   on-device.
+
+**Kesimpulan sementara:** kalau MyShift tetap web-based, level
+keamanan absensi realistis-nya "cukup" (GPS + foto + liveness
+dasar/opsi 2) — bukan seketat native app. Ini trade-off yang sadar
+diambil demi tetap murah & cepat dikembangkan, cocok buat target
+UMKM/tim kecil yang nggak butuh anti-fraud level enterprise.
