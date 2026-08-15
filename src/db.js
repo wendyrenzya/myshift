@@ -1,6 +1,6 @@
 // src/db.js — IndexedDB layer khusus data shift (dipisah dari belanja-app/planner)
 const DB_NAME = 'myshift'
-const DB_VER  = 3
+const DB_VER  = 4
 let _db = null
 
 export function openDB() {
@@ -14,6 +14,8 @@ export function openDB() {
         db.createObjectStore('shift_schedules', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('shift_notes'))
         db.createObjectStore('shift_notes', { keyPath: 'id' })
+      if (!db.objectStoreNames.contains('shift_leaves'))
+        db.createObjectStore('shift_leaves', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('shift_personnel'))
         db.createObjectStore('shift_personnel', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('shift_config'))

@@ -16,6 +16,7 @@ let activeScheduleId = null      // jadwal yang lagi dibuka; null = halaman daft
 let showScheduleForm = false     // sheet buat jadwal baru
 let gridViewMode = 'old'         // 'old' (per-hari, cell berjejer) atau 'new' (kartu per-shift) — toggle mengambang
 let shiftPersonnel = [], shiftConfig = null, shiftAssignments = []   // scoped ke activeScheduleId
+let shiftLeaves = []         // { personnel_id, date } — personil yang libur, scoped ke activeScheduleId
 let showShiftSettings = false    // popup kelola personil & shift utk jadwal aktif
 let shiftWeekStart = fmtYMD(mondayOfWeek(new Date()))
 let activeShiftCell = null   // { day, shift } saat sheet assign personil terbuka
@@ -54,6 +55,33 @@ async function saveWeekNote(text) {
   }
   await putLocal('shift_notes', { id, schedule_id: activeScheduleId, week_start: shiftWeekStart, text, updated_at: Date.now() })
   shiftNoteText = text
+}
+
+async function loadLeaves() {
+  const all = await getAllLocal('shift_leaves')
+  shiftLeaves = all.filter(l => l.schedule_id === activeScheduleId)
+}
+
+function dateForDay(dayIndex) {
+  const d = new Date(shiftWeekStart + 'T00:00:00'); d.setDate(d.getDate() + dayIndex)
+  return fmtYMD(d)
+}
+
+function isOnLeave(pid, dayIndex) {
+  const date = dateForDay(dayIndex)
+  return shiftLeaves.some(l => l.personnel_id === pid && l.date === date)
+}
+
+async function toggleLeave(pid, dayIndex) {
+  const date = dateForDay(dayIndex)
+  const id = `${pid}::${date}`
+  if (shiftLeaves.some(l => l.id === id)) {
+    await deleteLocal('shift_leaves', id)
+  } else {
+    await putLocal('shift_leaves', { id, schedule_id: activeScheduleId, personnel_id: pid, date, created_at: Date.now() })
+  }
+  await loadLeaves()
+  render()
 }
 
 function mondayOfWeek(d) {
@@ -187,6 +215,8 @@ async function deleteSchedule(id) {
   for (const a of allAssignments.filter(a => a.schedule_id === id)) await deleteLocal('shift_assignments', a.id)
   const allNotes = await getAllLocal('shift_notes')
   for (const n of allNotes.filter(n => n.schedule_id === id)) await deleteLocal('shift_notes', n.id)
+  const allLeaves = await getAllLocal('shift_leaves')
+  for (const l of allLeaves.filter(l => l.schedule_id === id)) await deleteLocal('shift_leaves', l.id)
   await loadSchedules()
   render()
 }
@@ -195,6 +225,7 @@ async function enterSchedule(id) {
   activeScheduleId = id
   await loadShiftData()
   await loadWeekNote()
+  await loadLeaves()
   showShiftSettings = !(shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0)
   activeShiftCell = null
   showShareSheet = false
@@ -296,7 +327,9 @@ async function deleteShiftPersonnel(pid) {
       await putLocal('shift_assignments', { ...a, personnel_ids: a.personnel_ids.filter(id => id !== pid) })
     }
   }
+  for (const l of shiftLeaves.filter(l => l.personnel_id === pid)) await deleteLocal('shift_leaves', l.id)
   await loadShiftData()
+  await loadLeaves()
   render()
 }
 
@@ -391,9 +424,13 @@ function renderShiftSheet() {
           ${shiftPersonnel.map(p => {
             const checked = assignedIds.includes(p.id)
             const other = findOtherShiftSameDay(p.id, day, shift)
-            return `<button type="button" class="pl-sheet-chip ${checked ? 'checked' : ''}" data-pid="${p.id}" style="border-color:${p.color};${checked ? `background:${p.color}` : ''}">
-              <span class="pl-shift-dot" style="background:${checked ? '#fff' : p.color}"></span>${esc(p.name)}${other ? `<span class="pl-sheet-conflict">· sudah di ${esc(other)}</span>` : ''}
-            </button>`
+            const onLeave = isOnLeave(p.id, day)
+            return `<div class="pl-sheet-person-row">
+              <button type="button" class="pl-sheet-chip ${checked ? 'checked' : ''} ${onLeave ? 'onleave' : ''}" data-pid="${p.id}" style="border-color:${p.color};${checked ? `background:${p.color}` : ''}">
+                <span class="pl-shift-dot" style="background:${checked ? '#fff' : p.color}"></span>${esc(p.name)}${onLeave ? '<span class="pl-sheet-conflict">· libur</span>' : (other ? `<span class="pl-sheet-conflict">· sudah di ${esc(other)}</span>` : '')}
+              </button>
+              <button type="button" class="pl-sheet-leave-btn ${onLeave ? 'active' : ''}" data-leave-pid="${p.id}" aria-label="Tandai libur" title="Tandai libur hari ini">${svgIcon('ban').replace('<svg ', '<svg style="width:15px;height:15px" ')}</button>
+            </div>`
           }).join('')}
         </div>
         <button type="button" class="pl-submit" id="pl-sheet-done">Selesai</button>
@@ -409,6 +446,12 @@ function wireShiftSheet() {
   app.querySelectorAll('.pl-sheet-chip').forEach(btn => {
     btn.addEventListener('click', () => toggleShiftAssign(btn.dataset.pid))
   })
+  app.querySelectorAll('.pl-sheet-leave-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const { day } = activeShiftCell
+      toggleLeave(btn.dataset.leavePid, day)
+    })
+  })
 }
 
 async function toggleShiftAssign(pid) {
@@ -419,6 +462,27 @@ async function toggleShiftAssign(pid) {
   if (idx === -1) assign.personnel_ids.push(pid); else assign.personnel_ids.splice(idx, 1)
   assign.updated_at = Date.now()
   await putLocal('shift_assignments', assign)
+  await loadShiftData()
+  render()
+}
+
+async function duplicatePreviousWeek() {
+  const prevDate = new Date(shiftWeekStart + 'T00:00:00'); prevDate.setDate(prevDate.getDate() - 7)
+  const prevWeekStart = fmtYMD(prevDate)
+  const allAssignments = await getAllLocal('shift_assignments')
+  const prevAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId && a.week_start === prevWeekStart && (a.personnel_ids || []).length > 0)
+  if (prevAssignments.length === 0) { alert('Minggu sebelumnya belum ada jadwal yang bisa diduplikat.'); return }
+  const hasCurrent = shiftAssignments.some(a => (a.personnel_ids || []).length > 0)
+  if (hasCurrent && !confirm('Jadwal minggu ini sudah ada isinya. Timpa dengan jadwal minggu lalu?')) return
+  const currentAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId && a.week_start === shiftWeekStart)
+  for (const a of currentAssignments) await deleteLocal('shift_assignments', a.id)
+  for (const pa of prevAssignments) {
+    await putLocal('shift_assignments', {
+      id: crypto.randomUUID(), schedule_id: activeScheduleId, week_start: shiftWeekStart,
+      day_index: pa.day_index, shift_index: pa.shift_index,
+      personnel_ids: [...(pa.personnel_ids || [])], updated_at: Date.now()
+    })
+  }
   await loadShiftData()
   render()
 }
@@ -623,7 +687,11 @@ function renderScheduleDetail() {
         <button class="pl-week-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
       </div>
       ${gridViewMode === 'new' ? renderShiftGridCards() : renderShiftGridOld()}
-      <button type="button" id="pl-notes-btn" class="pl-settings-toggle" style="margin-top:14px;margin-bottom:0">
+      <button type="button" id="pl-duplicate-btn" class="pl-settings-toggle" style="margin-top:14px;margin-bottom:8px">
+        ${svgIcon('copy').replace('<svg ', '<svg style="width:15px;height:15px" ')}
+        <span>Duplikat Jadwal Minggu Lalu</span>
+      </button>
+      <button type="button" id="pl-notes-btn" class="pl-settings-toggle" style="margin-top:0;margin-bottom:0">
         ${svgIcon('pencil').replace('<svg ', '<svg style="width:15px;height:15px" ')}
         <span>${shiftNoteText ? esc(shiftNoteText.length > 46 ? shiftNoteText.slice(0, 46) + '…' : shiftNoteText) : 'Tambah Catatan'}</span>
       </button>
@@ -657,6 +725,7 @@ function wireScheduleDetail() {
         render()
       })
     })
+    app.querySelector('#pl-duplicate-btn').addEventListener('click', duplicatePreviousWeek)
     app.querySelector('#pl-notes-btn').addEventListener('click', () => { showNotesSheet = true; render() })
     app.querySelector('#pl-share-btn').addEventListener('click', () => {
       const hasAny = shiftAssignments.some(a => a.week_start === shiftWeekStart && (a.personnel_ids || []).length > 0)

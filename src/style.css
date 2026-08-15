@@ -203,15 +203,23 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   max-height: calc(var(--viewport-height) - 8px); overflow-y: auto;
 }
 .pl-sheet-title { font-size: .92rem; font-weight: 700; margin-bottom: 14px; }
-.pl-sheet-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.pl-sheet-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.pl-sheet-person-row { display: flex; align-items: center; gap: 8px; }
 .pl-sheet-chip {
   display: flex; align-items: center; gap: 6px;
   border: 1.5px solid var(--border); border-radius: 999px;
   padding: 7px 12px; background: var(--bg-input); font-size: .82rem; color: var(--text);
-  cursor: pointer; font-family: inherit;
+  cursor: pointer; font-family: inherit; flex: 1; min-width: 0;
 }
 .pl-sheet-chip.checked { color: #fff; }
+.pl-sheet-chip.onleave { opacity: .65; }
 .pl-sheet-conflict { font-size: .65rem; opacity: .8; margin-left: 2px; }
+.pl-sheet-leave-btn {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-3);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.pl-sheet-leave-btn.active { background: #FEE2E2; border-color: #FCA5A5; color: #DC2626; }
 
 .pl-share-opt {
   display: flex; align-items: center; gap: 10px;
