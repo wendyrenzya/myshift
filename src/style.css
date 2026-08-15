@@ -54,7 +54,7 @@ html, body {
 }
 
 body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
-#app { max-width: 480px; margin: 0 auto; }
+#app { max-width: 480px; margin: 0 auto; position: relative; }
 
 /* ── Empty state ── */
 .empty {
@@ -92,6 +92,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   transition: transform var(--ease-out), background var(--ease);
 }
 .pl-submit:active { transform: var(--active-press); }
+.pl-submit:disabled { opacity: .6; cursor: default; }
 
 .pl-list-empty { text-align: center; color: var(--text-3); font-size: 0.85rem; padding: 32px 0; }
 
@@ -129,14 +130,25 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 }
 .pl-person-chip button { background: none; border: none; cursor: pointer; color: var(--text-3); padding: 2px; display: flex; }
 
-.pl-shift-settings { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 14px; margin-bottom: 14px; }
 .pl-shift-count-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 4px; }
 .pl-shift-count-row input[type=number] { width: 70px; flex: none; }
 .pl-shift-count-row .pl-list-empty { flex: 1; min-width: 0; text-align: left; }
 .pl-shift-labels { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .pl-shift-labels input { font-size: .82rem; }
 
-/* ── Kartu shift: satu kartu per shift, berisi 7 baris hari ── */
+/* ── Tampilan LAMA (default): per-hari, cell shift berjejer ke samping ── */
+.pl-shift-day { margin-bottom: 14px; }
+.pl-shift-day-label { font-size: .8rem; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
+.pl-shift-cells { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.pl-shift-cell {
+  flex: 1; min-width: 84px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 8px; cursor: pointer; transition: border-color var(--ease);
+}
+.pl-shift-cell:hover { border-color: var(--border-dark); }
+.pl-shift-cell-label { font-size: .64rem; color: var(--text-3); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .02em; }
+.pl-shift-cell-people { display: flex; flex-direction: column; gap: 4px; }
+
+/* ── Tampilan BARU (opsional via toggle): satu kartu per shift, 7 baris hari ── */
 .pl-shift-card {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--r-xl); margin-bottom: 14px; overflow: hidden;
@@ -155,14 +167,27 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-shift-row:active { background: var(--bg-input); }
 .pl-shift-row-day { font-size: .78rem; font-weight: 600; color: var(--text-2); flex-shrink: 0; width: 92px; }
 .pl-shift-row-people { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; flex: 1; }
-.pl-shift-cell-empty { font-size: .72rem; color: var(--text-3); border: 1px dashed var(--border); border-radius: var(--r-sm); text-align: center; padding: 5px 10px; flex-shrink: 0; }
+
+/* ── Dipakai di kedua tampilan ── */
+.pl-shift-cell-empty { font-size: .72rem; color: var(--text-3); border: 1px dashed var(--border); border-radius: var(--r-sm); text-align: center; padding: 6px 10px; flex-shrink: 0; }
 .pl-shift-chip {
   display: flex; align-items: center; gap: 5px;
   border: 1px solid; border-radius: 999px; padding: 3px 8px;
   font-size: .7rem; font-weight: 600; color: var(--text);
 }
 
-/* ── Bottom sheet overlay: pilih personil per slot ── */
+/* ── Tombol toggle tampilan grid (mengambang) ── */
+.pl-view-toggle {
+  position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 16px);
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--module-color, var(--accent)); color: var(--white);
+  border: none; box-shadow: var(--shadow-lg);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 20;
+}
+.pl-view-toggle:active { transform: var(--active-press); }
+
+/* ── Bottom sheet overlay ── */
 .pl-overlay {
   position: fixed; inset: 0; background: rgba(17,24,39,.45);
   display: flex; align-items: flex-end; justify-content: center;
@@ -195,8 +220,6 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-share-opt:active { transform: var(--active-press); }
 .pl-share-opt svg { flex-shrink: 0; color: var(--module-color, var(--accent)); }
 
-.pl-submit:disabled { opacity: .6; cursor: default; }
-
 /* ── Onboarding intro (dalam panel pengaturan saat belum ready) ── */
 .pl-onboard-intro { text-align: center; margin-bottom: 16px; }
 .pl-onboard-title { font-size: .95rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
@@ -215,5 +238,25 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   50% { opacity: 1; }
 }
 
-/* ── Hint di bottom sheet assign personil ── */
+/* ── Hint di bottom sheet ── */
 .pl-sheet-hint { font-size: .76rem; color: var(--text-3); margin: -8px 0 12px; }
+
+/* ── Halaman daftar jadwal (home) ── */
+.pl-sched-intro { margin-bottom: 16px; }
+.pl-sched-intro-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.pl-sched-intro-sub { font-size: .8rem; color: var(--text-3); line-height: 1.45; }
+.pl-sched-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.pl-sched-card {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 13px 14px; cursor: pointer;
+  transition: border-color var(--ease);
+}
+.pl-sched-card:active { border-color: var(--border-dark); }
+.pl-sched-card-name { flex: 1; font-size: .88rem; font-weight: 600; color: var(--text); }
+.pl-sched-del { background: none; border: none; color: var(--text-3); cursor: pointer; padding: 4px; display: flex; }
+
+/* ── Header jadwal (di dalam detail satu jadwal) ── */
+.pl-sched-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.pl-sched-back { background: none; border: none; color: var(--text-3); font-size: .8rem; font-weight: 600; cursor: pointer; padding: 4px 0; }
+.pl-sched-header-name { font-size: .85rem; font-weight: 700; color: var(--text); }

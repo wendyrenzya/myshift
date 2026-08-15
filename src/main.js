@@ -11,19 +11,29 @@ const app = document.getElementById('app')
 
 // ── State ──
 const SHIFT_COLORS = ['#E11D48','#EA580C','#D97706','#65A30D','#059669','#0891B2','#2563EB','#7C3AED','#C026D3','#DB2777']
-let shiftPersonnel = [], shiftConfig = null, shiftAssignments = []
-let showShiftSettings = true   // popup pengaturan otomatis terbuka saat pertama kali (onboarding)
+let shiftSchedules = []          // daftar jadwal shift (Shift Kantor, Shift Ronda Malam, dst)
+let activeScheduleId = null      // jadwal yang lagi dibuka; null = halaman daftar jadwal
+let showScheduleForm = false     // sheet buat jadwal baru
+let gridViewMode = 'old'         // 'old' (per-hari, cell berjejer) atau 'new' (kartu per-shift) — toggle mengambang
+let shiftPersonnel = [], shiftConfig = null, shiftAssignments = []   // scoped ke activeScheduleId
+let showShiftSettings = false    // popup kelola personil & shift utk jadwal aktif
 let shiftWeekStart = fmtYMD(mondayOfWeek(new Date()))
 let activeShiftCell = null   // { day, shift } saat sheet assign personil terbuka
 let showShareSheet = false
 let sharing = false          // lagi generate JPG/PDF (disable tombol biar gak double-tap)
 
 // ── Load ──
+async function loadSchedules() {
+  shiftSchedules = await getAllLocal('shift_schedules')
+}
+
 async function loadShiftData() {
-  shiftPersonnel = await getAllLocal('shift_personnel')
+  const allPersonnel = await getAllLocal('shift_personnel')
+  shiftPersonnel = allPersonnel.filter(p => p.schedule_id === activeScheduleId)
   const configs = await getAllLocal('shift_config')
-  shiftConfig = configs.find(c => c.id === 'default') || null
-  shiftAssignments = await getAllLocal('shift_assignments')
+  shiftConfig = configs.find(c => c.schedule_id === activeScheduleId) || null
+  const allAssignments = await getAllLocal('shift_assignments')
+  shiftAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId)
 }
 
 function mondayOfWeek(d) {
@@ -63,6 +73,114 @@ function findOtherShiftSameDay(pid, day, currentShiftIdx) {
   if (!a) return null
   return shiftConfig.shift_labels[a.shift_index] || `Shift ${a.shift_index + 1}`
 }
+
+// ══════════════════════════════════════════════════════════
+// ── HALAMAN DAFTAR JADWAL (home) ──
+// ══════════════════════════════════════════════════════════
+
+function renderScheduleHome() {
+  return `
+    <div class="pl-sched-intro">
+      <div class="pl-sched-intro-title">Jadwal Shift</div>
+      <div class="pl-sched-intro-sub">Tiap jadwal punya personil & jadwal mingguan sendiri-sendiri.</div>
+    </div>
+    ${shiftSchedules.length === 0 ? `
+      <div class="empty">
+        <div class="empty-icon">${USERS32}</div>
+        <div class="empty-title">Belum ada jadwal shift</div>
+        <div class="empty-sub">Buat jadwal pertama, misalnya "Shift Kantor" atau "Shift Ronda Malam".</div>
+      </div>
+    ` : `
+      <div class="pl-sched-list">
+        ${shiftSchedules.map(s => `
+          <div class="pl-sched-card" data-id="${s.id}">
+            <span class="pl-shift-dot" style="background:${s.color}"></span>
+            <span class="pl-sched-card-name">${esc(s.name)}</span>
+            <button type="button" class="pl-sched-del" data-id="${s.id}" aria-label="Hapus jadwal">${svgIcon('closeIcon').replace('<svg ', '<svg style="width:13px;height:13px" ')}</button>
+          </div>
+        `).join('')}
+      </div>
+    `}
+    <button type="button" class="pl-submit" id="pl-sched-add">+ Tambah Jadwal Shift</button>
+    ${showScheduleForm ? renderScheduleFormSheet() : ''}
+  `
+}
+
+function wireScheduleHome() {
+  app.querySelector('#pl-sched-add').addEventListener('click', () => { showScheduleForm = true; render() })
+  app.querySelectorAll('.pl-sched-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.pl-sched-del')) return
+      enterSchedule(card.dataset.id)
+    })
+  })
+  app.querySelectorAll('.pl-sched-del').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); deleteSchedule(btn.dataset.id) })
+  })
+  if (showScheduleForm) wireScheduleFormSheet()
+}
+
+function renderScheduleFormSheet() {
+  return `
+    <div class="pl-overlay" id="pl-sched-form-overlay">
+      <div class="pl-sheet">
+        <div class="pl-sheet-title">Jadwal Shift Baru</div>
+        <div class="pl-sheet-hint">Nama jadwal, misalnya "Shift Kantor" atau "Shift Ronda Malam".</div>
+        <input id="pl-sched-name-input" type="text" placeholder="Nama jadwal…" autocomplete="off" />
+        <button type="button" class="pl-submit" id="pl-sched-form-done" style="margin-top:12px">Buat Jadwal</button>
+      </div>
+    </div>
+  `
+}
+
+function wireScheduleFormSheet() {
+  const overlay = app.querySelector('#pl-sched-form-overlay')
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { showScheduleForm = false; render() } })
+  const submit = async () => {
+    const input = app.querySelector('#pl-sched-name-input')
+    const v = input.value.trim()
+    if (!v) return
+    await createSchedule(v)
+  }
+  app.querySelector('#pl-sched-form-done').addEventListener('click', submit)
+  app.querySelector('#pl-sched-name-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit() } })
+}
+
+async function createSchedule(name) {
+  const id = crypto.randomUUID()
+  const color = SHIFT_COLORS[shiftSchedules.length % SHIFT_COLORS.length]
+  await putLocal('shift_schedules', { id, name, color, created_at: Date.now() })
+  await loadSchedules()
+  showScheduleForm = false
+  await enterSchedule(id)
+}
+
+async function deleteSchedule(id) {
+  const s = shiftSchedules.find(x => x.id === id)
+  const name = s ? s.name : 'jadwal ini'
+  if (!confirm(`Hapus jadwal "${name}"? Semua personil dan jadwal mingguan di dalamnya juga ikut terhapus.`)) return
+  await deleteLocal('shift_schedules', id)
+  await deleteLocal('shift_config', id)
+  const allPersonnel = await getAllLocal('shift_personnel')
+  for (const p of allPersonnel.filter(p => p.schedule_id === id)) await deleteLocal('shift_personnel', p.id)
+  const allAssignments = await getAllLocal('shift_assignments')
+  for (const a of allAssignments.filter(a => a.schedule_id === id)) await deleteLocal('shift_assignments', a.id)
+  await loadSchedules()
+  render()
+}
+
+async function enterSchedule(id) {
+  activeScheduleId = id
+  await loadShiftData()
+  showShiftSettings = !(shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0)
+  activeShiftCell = null
+  showShareSheet = false
+  render()
+}
+
+// ══════════════════════════════════════════════════════════
+// ── KELOLA PERSONIL & SHIFT (dalam satu jadwal) ──
+// ══════════════════════════════════════════════════════════
 
 function renderShiftSettingsSheet(onboarding) {
   const n = shiftConfig ? shiftConfig.shifts_per_day : 1
@@ -142,7 +260,7 @@ function wireShiftSettingsSheet() {
 
 async function addShiftPersonnel(name) {
   const color = SHIFT_COLORS[shiftPersonnel.length % SHIFT_COLORS.length]
-  await putLocal('shift_personnel', { id: crypto.randomUUID(), name, color, created_at: Date.now() })
+  await putLocal('shift_personnel', { id: crypto.randomUUID(), schedule_id: activeScheduleId, name, color, created_at: Date.now() })
   await loadShiftData()
   render()
 }
@@ -162,7 +280,7 @@ async function updateShiftCount(newCount) {
   newCount = Math.max(1, Math.min(8, newCount))
   const oldLabels = shiftConfig ? shiftConfig.shift_labels : []
   const newLabels = Array.from({ length: newCount }, (_, i) => oldLabels[i] || `Shift ${i + 1}`)
-  shiftConfig = { id: 'default', shifts_per_day: newCount, shift_labels: newLabels }
+  shiftConfig = { id: activeScheduleId, schedule_id: activeScheduleId, shifts_per_day: newCount, shift_labels: newLabels }
   await putLocal('shift_config', shiftConfig)
   render()
 }
@@ -175,7 +293,39 @@ async function updateShiftLabel(index, value) {
   render()
 }
 
-function renderShiftGrid() {
+// ══════════════════════════════════════════════════════════
+// ── GRID MINGGUAN — 2 tampilan (toggle) ──
+// ══════════════════════════════════════════════════════════
+
+// Tampilan lama: per-hari, cell shift berjejer ke samping (default, lebih disukai)
+function renderShiftGridOld() {
+  const n = shiftConfig.shifts_per_day
+  const labels = shiftConfig.shift_labels
+  const start = new Date(shiftWeekStart + 'T00:00:00')
+  let html = ''
+  for (let di = 0; di < 7; di++) {
+    const d = new Date(start); d.setDate(start.getDate() + di)
+    const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()].slice(0, 3)}`
+    html += `<div class="pl-shift-day">
+      <div class="pl-shift-day-label">${dayLabel}</div>
+      <div class="pl-shift-cells">`
+    for (let si = 0; si < n; si++) {
+      const assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === di && a.shift_index === si)
+      const people = (assign ? assign.personnel_ids : []).map(pid => shiftPersonnel.find(p => p.id === pid)).filter(Boolean)
+      html += `<div class="pl-shift-cell" data-day="${di}" data-shift="${si}">
+        <div class="pl-shift-cell-label">${esc(labels[si] || ('Shift ' + (si + 1)))}</div>
+        ${people.length === 0
+          ? '<div class="pl-shift-cell-empty">+ isi personil</div>'
+          : `<div class="pl-shift-cell-people">${people.map(p => `<span class="pl-shift-chip" style="border-color:${p.color};background:${p.color}22"><span class="pl-shift-dot" style="background:${p.color}"></span>${esc(p.name.split(' ')[0])}</span>`).join('')}</div>`}
+      </div>`
+    }
+    html += `</div></div>`
+  }
+  return html
+}
+
+// Tampilan baru: satu kartu per shift, isinya 7 baris hari
+function renderShiftGridCards() {
   const n = shiftConfig.shifts_per_day
   const labels = shiftConfig.shift_labels
   const start = new Date(shiftWeekStart + 'T00:00:00')
@@ -240,7 +390,7 @@ function wireShiftSheet() {
 async function toggleShiftAssign(pid) {
   const { day, shift } = activeShiftCell
   let assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === day && a.shift_index === shift)
-  if (!assign) assign = { id: crypto.randomUUID(), week_start: shiftWeekStart, day_index: day, shift_index: shift, personnel_ids: [] }
+  if (!assign) assign = { id: crypto.randomUUID(), schedule_id: activeScheduleId, week_start: shiftWeekStart, day_index: day, shift_index: shift, personnel_ids: [] }
   const idx = assign.personnel_ids.indexOf(pid)
   if (idx === -1) assign.personnel_ids.push(pid); else assign.personnel_ids.splice(idx, 1)
   assign.updated_at = Date.now()
@@ -250,25 +400,26 @@ async function toggleShiftAssign(pid) {
 }
 
 // ══════════════════════════════════════════════════════════
-// ── EKSPOR / BAGIKAN (JPG & PDF) ──
+// ── EKSPOR / BAGIKAN (JPG & PDF) — format per-hari (samain sama tampilan lama) ──
 // ══════════════════════════════════════════════════════════
 
 function buildExportCard() {
   const n = shiftConfig.shifts_per_day
   const labels = shiftConfig.shift_labels
   const start = new Date(shiftWeekStart + 'T00:00:00')
+  const sched = shiftSchedules.find(s => s.id === activeScheduleId)
 
-  let shiftsHtml = ''
-  for (let si = 0; si < n; si++) {
+  let daysHtml = ''
+  for (let di = 0; di < 7; di++) {
+    const d = new Date(start); d.setDate(start.getDate() + di)
+    const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
     let rowsHtml = ''
-    for (let di = 0; di < 7; di++) {
-      const d = new Date(start); d.setDate(start.getDate() + di)
-      const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
+    for (let si = 0; si < n; si++) {
       const assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === di && a.shift_index === si)
       const people = (assign ? assign.personnel_ids : []).map(pid => shiftPersonnel.find(p => p.id === pid)).filter(Boolean)
       rowsHtml += `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${di < 6 ? 'border-bottom:1px solid #EEEEEC' : ''}">
-          <div style="width:92px;flex-shrink:0;font-size:12px;font-weight:700;color:#6B6B6B;text-transform:uppercase;letter-spacing:.02em">${dayLabel}</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${si < n - 1 ? 'border-bottom:1px solid #EEEEEC' : ''}">
+          <div style="width:92px;flex-shrink:0;font-size:12px;font-weight:700;color:#6B6B6B;text-transform:uppercase;letter-spacing:.02em">${esc(labels[si] || ('Shift ' + (si + 1)))}</div>
           <div style="flex:1;display:flex;flex-wrap:wrap;gap:6px">
             ${people.length === 0
               ? '<span style="font-size:13px;color:#B0B0AC">— belum ada —</span>'
@@ -276,9 +427,9 @@ function buildExportCard() {
           </div>
         </div>`
     }
-    shiftsHtml += `
+    daysHtml += `
       <div style="margin-bottom:14px">
-        <div style="font-size:13.5px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${esc(labels[si] || ('Shift ' + (si + 1)))}</div>
+        <div style="font-size:13.5px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${dayLabel}</div>
         <div style="background:#FAFAF8;border:1px solid #EEEEEC;border-radius:12px;padding:4px 12px">${rowsHtml}</div>
       </div>`
   }
@@ -287,11 +438,11 @@ function buildExportCard() {
   card.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:#ffffff;padding:32px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
   card.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div style="font-size:22px;font-weight:800;color:#1A1A1A">Jadwal Shift</div>
+      <div style="font-size:22px;font-weight:800;color:#1A1A1A">${esc(sched ? sched.name : 'Jadwal Shift')}</div>
       <div style="font-size:13px;font-weight:700;color:#E11D48;background:#FFE4E6;padding:5px 12px;border-radius:999px">${fmtWeekRange(shiftWeekStart)}</div>
     </div>
     <div style="height:1px;background:#EEEEEC;margin:16px 0 20px"></div>
-    ${shiftsHtml}
+    ${daysHtml}
     <div style="margin-top:8px;text-align:center;font-size:11.5px;color:#B0B0AC">Dibuat dengan MyShift · myshift.my.id · ${new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</div>
   `
   document.body.appendChild(card)
@@ -310,7 +461,9 @@ async function captureShiftCanvas() {
 }
 
 function exportFilename(ext) {
-  return `jadwal-shift-${shiftWeekStart}.${ext}`
+  const sched = shiftSchedules.find(s => s.id === activeScheduleId)
+  const slug = sched ? sched.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : 'jadwal'
+  return `jadwal-shift-${slug}-${shiftWeekStart}.${ext}`
 }
 
 async function shareFileOrDownload(blob, filename, mime) {
@@ -367,10 +520,11 @@ async function shareAsPDF() {
 }
 
 function renderShareSheet() {
+  const sched = shiftSchedules.find(s => s.id === activeScheduleId)
   return `
     <div class="pl-overlay" id="pl-share-overlay">
       <div class="pl-sheet">
-        <div class="pl-sheet-title">Bagikan Jadwal — ${fmtWeekRange(shiftWeekStart)}</div>
+        <div class="pl-sheet-title">Bagikan ${esc(sched ? sched.name : 'Jadwal')} — ${fmtWeekRange(shiftWeekStart)}</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <button type="button" class="pl-share-opt" id="pl-share-jpg">
             ${svgIcon('image').replace('<svg ', '<svg style="width:18px;height:18px" ')}
@@ -393,9 +547,18 @@ function wireShareSheet() {
   app.querySelector('#pl-share-pdf').addEventListener('click', shareAsPDF)
 }
 
-function render() {
+// ══════════════════════════════════════════════════════════
+// ── DETAIL JADWAL (grid mingguan satu jadwal) ──
+// ══════════════════════════════════════════════════════════
+
+function renderScheduleDetail() {
   const ready = shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0
-  app.innerHTML = `
+  const sched = shiftSchedules.find(s => s.id === activeScheduleId)
+  return `
+    <div class="pl-sched-header">
+      <button type="button" class="pl-sched-back" id="pl-sched-back">&lsaquo; Semua Jadwal</button>
+      <div class="pl-sched-header-name">${esc(sched ? sched.name : '')}</div>
+    </div>
     <button id="pl-shift-settings-toggle" class="pl-settings-toggle">${svgIcon('wrench').replace('<svg ', '<svg style="width:15px;height:15px" ')} Kelola Personil & Shift</button>
     ${!ready ? `
       <div class="empty">
@@ -410,15 +573,23 @@ function render() {
         <span class="pl-week-label">${fmtWeekRange(shiftWeekStart)}</span>
         <button class="pl-week-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
       </div>
-      ${renderShiftGrid()}
+      ${gridViewMode === 'new' ? renderShiftGridCards() : renderShiftGridOld()}
       <button type="button" id="pl-share-btn" class="pl-submit" style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:7px" ${sharing ? 'disabled' : ''}>
         ${svgIcon('share').replace('<svg ', '<svg style="width:15px;height:15px" ')} ${sharing ? 'Membuat file…' : 'Bagikan Jadwal'}
+      </button>
+      <button type="button" class="pl-view-toggle" id="pl-view-toggle" aria-label="Ganti tampilan grid" title="Ganti tampilan grid">
+        ${svgIcon('swap').replace('<svg ', '<svg style="width:18px;height:18px" ')}
       </button>
     `}
     ${showShiftSettings ? renderShiftSettingsSheet(!ready) : ''}
     ${activeShiftCell ? renderShiftSheet() : ''}
     ${showShareSheet ? renderShareSheet() : ''}
   `
+}
+
+function wireScheduleDetail() {
+  const ready = shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0
+  app.querySelector('#pl-sched-back').addEventListener('click', () => { activeScheduleId = null; render() })
   app.querySelector('#pl-shift-settings-toggle').addEventListener('click', () => { showShiftSettings = true; render() })
   if (showShiftSettings) wireShiftSettingsSheet()
   if (ready) {
@@ -426,7 +597,7 @@ function render() {
     app.querySelector('#pl-week-next').addEventListener('click', () => { shiftWeekAdd(7); render() })
     const todayBtn = app.querySelector('#pl-week-today')
     if (todayBtn) todayBtn.addEventListener('click', () => { shiftWeekStart = fmtYMD(mondayOfWeek(new Date())); render() })
-    app.querySelectorAll('.pl-shift-row').forEach(cell => {
+    app.querySelectorAll('.pl-shift-cell, .pl-shift-row').forEach(cell => {
       cell.addEventListener('click', () => {
         activeShiftCell = { day: Number(cell.dataset.day), shift: Number(cell.dataset.shift) }
         render()
@@ -437,9 +608,22 @@ function render() {
       if (!hasAny && !confirm('Jadwal minggu ini masih kosong. Tetap lanjut bagikan?')) return
       showShareSheet = true; render()
     })
+    app.querySelector('#pl-view-toggle').addEventListener('click', () => {
+      gridViewMode = gridViewMode === 'old' ? 'new' : 'old'
+      render()
+    })
   }
   if (activeShiftCell) wireShiftSheet()
   if (showShareSheet) wireShareSheet()
+}
+
+// ══════════════════════════════════════════════════════════
+// ── RENDER UTAMA ──
+// ══════════════════════════════════════════════════════════
+
+function render() {
+  app.innerHTML = activeScheduleId ? renderScheduleDetail() : renderScheduleHome()
+  if (activeScheduleId) wireScheduleDetail(); else wireScheduleHome()
 }
 
 function esc(s) {
@@ -448,6 +632,6 @@ function esc(s) {
 
 // ── Boot ──
 ;(async () => {
-  await loadShiftData()
+  await loadSchedules()
   render()
 })()
