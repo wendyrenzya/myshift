@@ -62,3 +62,8 @@ Dipertimbangkan model **freemium flat per akun (bukan per personil)**:
   Talenta/Gadjian Rp 12.500–20.000/karyawan/bulan): target MyShift
   tim kecil, cost cloud-nya juga flat per-tim, dan jadi selling
   point "satu harga berapa pun orangnya".
+
+### Fitur: Absensi
+Ide fitur tambahan — di luar scope MVP, belum dieksekusi. Belum ada
+detail lebih lanjut (metode absen, integrasi ke grid shift yang
+sudah ada, dll — masih perlu digali).
