@@ -78,6 +78,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   transition: border-color var(--ease), box-shadow var(--ease);
 }
 #app input:focus { outline: none; border-color: var(--text); box-shadow: 0 0 0 2px rgba(55,65,81,.1); }
+#app textarea { resize: vertical; min-height: 80px; }
 
 .pl-submit {
   background: var(--module-color, var(--accent));
@@ -176,16 +177,19 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   font-size: .7rem; font-weight: 600; color: var(--text);
 }
 
-/* ── Tombol toggle tampilan grid (mengambang) ── */
-.pl-view-toggle {
-  position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 16px);
+/* ── Tombol mengambang: toggle tampilan grid & bagikan jadwal ── */
+.pl-fab {
+  position: fixed; right: 16px;
   width: 46px; height: 46px; border-radius: 50%;
   background: var(--module-color, var(--accent)); color: var(--white);
   border: none; box-shadow: var(--shadow-lg);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; z-index: 20;
 }
-.pl-view-toggle:active { transform: var(--active-press); }
+.pl-fab:active { transform: var(--active-press); }
+.pl-fab:disabled { opacity: .6; cursor: default; }
+.pl-view-toggle { bottom: calc(env(safe-area-inset-bottom) + 16px); }
+.pl-share-fab { bottom: calc(env(safe-area-inset-bottom) + 74px); }
 
 /* ── Bottom sheet overlay ── */
 .pl-overlay {

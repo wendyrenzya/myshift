@@ -20,6 +20,8 @@ let showShiftSettings = false    // popup kelola personil & shift utk jadwal akt
 let shiftWeekStart = fmtYMD(mondayOfWeek(new Date()))
 let activeShiftCell = null   // { day, shift } saat sheet assign personil terbuka
 let showShareSheet = false
+let shiftNoteText = ''       // catatan minggu yang lagi dibuka
+let showNotesSheet = false   // popup catatan
 let sharing = false          // lagi generate JPG/PDF (disable tombol biar gak double-tap)
 
 // ── Load ──
@@ -34,6 +36,24 @@ async function loadShiftData() {
   shiftConfig = configs.find(c => c.schedule_id === activeScheduleId) || null
   const allAssignments = await getAllLocal('shift_assignments')
   shiftAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId)
+}
+
+async function loadWeekNote() {
+  const id = `${activeScheduleId}::${shiftWeekStart}`
+  const all = await getAllLocal('shift_notes')
+  const note = all.find(n => n.id === id)
+  shiftNoteText = note ? note.text : ''
+}
+
+async function saveWeekNote(text) {
+  const id = `${activeScheduleId}::${shiftWeekStart}`
+  if (!text) {
+    await deleteLocal('shift_notes', id)
+    shiftNoteText = ''
+    return
+  }
+  await putLocal('shift_notes', { id, schedule_id: activeScheduleId, week_start: shiftWeekStart, text, updated_at: Date.now() })
+  shiftNoteText = text
 }
 
 function mondayOfWeek(d) {
@@ -165,6 +185,8 @@ async function deleteSchedule(id) {
   for (const p of allPersonnel.filter(p => p.schedule_id === id)) await deleteLocal('shift_personnel', p.id)
   const allAssignments = await getAllLocal('shift_assignments')
   for (const a of allAssignments.filter(a => a.schedule_id === id)) await deleteLocal('shift_assignments', a.id)
+  const allNotes = await getAllLocal('shift_notes')
+  for (const n of allNotes.filter(n => n.schedule_id === id)) await deleteLocal('shift_notes', n.id)
   await loadSchedules()
   render()
 }
@@ -172,9 +194,11 @@ async function deleteSchedule(id) {
 async function enterSchedule(id) {
   activeScheduleId = id
   await loadShiftData()
+  await loadWeekNote()
   showShiftSettings = !(shiftPersonnel.length > 0 && shiftConfig && shiftConfig.shifts_per_day > 0)
   activeShiftCell = null
   showShareSheet = false
+  showNotesSheet = false
   render()
 }
 
@@ -442,6 +466,7 @@ function buildExportCard() {
       <div style="font-size:13px;font-weight:700;color:#E11D48;background:#FFE4E6;padding:5px 12px;border-radius:999px">${fmtWeekRange(shiftWeekStart)}</div>
     </div>
     <div style="height:1px;background:#EEEEEC;margin:16px 0 20px"></div>
+    ${shiftNoteText ? `<div style="background:#FFF8E1;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#78350F;white-space:pre-wrap">${esc(shiftNoteText)}</div>` : ''}
     ${daysHtml}
     <div style="margin-top:8px;text-align:center;font-size:11.5px;color:#B0B0AC">Dibuat dengan MyShift · myshift.my.id · ${new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</div>
   `
@@ -547,6 +572,30 @@ function wireShareSheet() {
   app.querySelector('#pl-share-pdf').addEventListener('click', shareAsPDF)
 }
 
+function renderNotesSheet() {
+  return `
+    <div class="pl-overlay" id="pl-notes-overlay">
+      <div class="pl-sheet">
+        <div class="pl-sheet-title">Catatan — ${fmtWeekRange(shiftWeekStart)}</div>
+        <div class="pl-sheet-hint">Muncul juga di JPG/PDF pas dibagikan. Kosongkan buat menghapus.</div>
+        <textarea id="pl-notes-textarea" rows="4" placeholder="Tulis catatan buat minggu ini…">${esc(shiftNoteText)}</textarea>
+        <button type="button" class="pl-submit" id="pl-notes-done" style="margin-top:12px">Simpan</button>
+      </div>
+    </div>
+  `
+}
+
+function wireNotesSheet() {
+  const overlay = app.querySelector('#pl-notes-overlay')
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { showNotesSheet = false; render() } })
+  app.querySelector('#pl-notes-done').addEventListener('click', async () => {
+    const text = app.querySelector('#pl-notes-textarea').value.trim()
+    await saveWeekNote(text)
+    showNotesSheet = false
+    render()
+  })
+}
+
 // ══════════════════════════════════════════════════════════
 // ── DETAIL JADWAL (grid mingguan satu jadwal) ──
 // ══════════════════════════════════════════════════════════
@@ -574,16 +623,21 @@ function renderScheduleDetail() {
         <button class="pl-week-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
       </div>
       ${gridViewMode === 'new' ? renderShiftGridCards() : renderShiftGridOld()}
-      <button type="button" id="pl-share-btn" class="pl-submit" style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:7px" ${sharing ? 'disabled' : ''}>
-        ${svgIcon('share').replace('<svg ', '<svg style="width:15px;height:15px" ')} ${sharing ? 'Membuat file…' : 'Bagikan Jadwal'}
+      <button type="button" id="pl-notes-btn" class="pl-settings-toggle" style="margin-top:14px;margin-bottom:0">
+        ${svgIcon('pencil').replace('<svg ', '<svg style="width:15px;height:15px" ')}
+        <span>${shiftNoteText ? esc(shiftNoteText.length > 46 ? shiftNoteText.slice(0, 46) + '…' : shiftNoteText) : 'Tambah Catatan'}</span>
       </button>
-      <button type="button" class="pl-view-toggle" id="pl-view-toggle" aria-label="Ganti tampilan grid" title="Ganti tampilan grid">
+      <button type="button" id="pl-share-btn" class="pl-fab pl-share-fab" aria-label="Bagikan Jadwal" title="Bagikan Jadwal" ${sharing ? 'disabled' : ''}>
+        ${svgIcon('share').replace('<svg ', '<svg style="width:18px;height:18px" ')}
+      </button>
+      <button type="button" class="pl-fab pl-view-toggle" id="pl-view-toggle" aria-label="Ganti tampilan grid" title="Ganti tampilan grid">
         ${svgIcon('swap').replace('<svg ', '<svg style="width:18px;height:18px" ')}
       </button>
     `}
     ${showShiftSettings ? renderShiftSettingsSheet(!ready) : ''}
     ${activeShiftCell ? renderShiftSheet() : ''}
     ${showShareSheet ? renderShareSheet() : ''}
+    ${showNotesSheet ? renderNotesSheet() : ''}
   `
 }
 
@@ -593,16 +647,17 @@ function wireScheduleDetail() {
   app.querySelector('#pl-shift-settings-toggle').addEventListener('click', () => { showShiftSettings = true; render() })
   if (showShiftSettings) wireShiftSettingsSheet()
   if (ready) {
-    app.querySelector('#pl-week-prev').addEventListener('click', () => { shiftWeekAdd(-7); render() })
-    app.querySelector('#pl-week-next').addEventListener('click', () => { shiftWeekAdd(7); render() })
+    app.querySelector('#pl-week-prev').addEventListener('click', async () => { shiftWeekAdd(-7); await loadWeekNote(); render() })
+    app.querySelector('#pl-week-next').addEventListener('click', async () => { shiftWeekAdd(7); await loadWeekNote(); render() })
     const todayBtn = app.querySelector('#pl-week-today')
-    if (todayBtn) todayBtn.addEventListener('click', () => { shiftWeekStart = fmtYMD(mondayOfWeek(new Date())); render() })
+    if (todayBtn) todayBtn.addEventListener('click', async () => { shiftWeekStart = fmtYMD(mondayOfWeek(new Date())); await loadWeekNote(); render() })
     app.querySelectorAll('.pl-shift-cell, .pl-shift-row').forEach(cell => {
       cell.addEventListener('click', () => {
         activeShiftCell = { day: Number(cell.dataset.day), shift: Number(cell.dataset.shift) }
         render()
       })
     })
+    app.querySelector('#pl-notes-btn').addEventListener('click', () => { showNotesSheet = true; render() })
     app.querySelector('#pl-share-btn').addEventListener('click', () => {
       const hasAny = shiftAssignments.some(a => a.week_start === shiftWeekStart && (a.personnel_ids || []).length > 0)
       if (!hasAny && !confirm('Jadwal minggu ini masih kosong. Tetap lanjut bagikan?')) return
@@ -615,6 +670,7 @@ function wireScheduleDetail() {
   }
   if (activeShiftCell) wireShiftSheet()
   if (showShareSheet) wireShareSheet()
+  if (showNotesSheet) wireNotesSheet()
 }
 
 // ══════════════════════════════════════════════════════════
