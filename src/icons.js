@@ -15,6 +15,7 @@ import {
   Upload,
   ChevronDown,
   Sparkles,
+  Eye,
 } from 'lucide'
 
 const ICONS = {
@@ -32,6 +33,7 @@ const ICONS = {
   upload: Upload,
   chevronDown: ChevronDown,
   sparkles: Sparkles,
+  eye: Eye,
 }
 
 export function svgIcon(id) {

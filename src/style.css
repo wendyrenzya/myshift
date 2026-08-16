@@ -169,6 +169,34 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-shift-row-day { font-size: .78rem; font-weight: 600; color: var(--text-2); flex-shrink: 0; width: 92px; }
 .pl-shift-row-people { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; flex: 1; }
 
+/* ── Tampilan NAMA (opsional via toggle): matrix personil x hari, ringkas ── */
+.pl-shift-byname-wrap { overflow-x: auto; margin-bottom: 4px; }
+.pl-shift-byname-table { border-collapse: collapse; width: 100%; min-width: 300px; }
+.pl-shift-byname-table th {
+  font-size: .6rem; font-weight: 700; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: .02em; padding: 0 2px 6px; text-align: center; white-space: nowrap;
+}
+.pl-shift-byname-table th:first-child { text-align: left; }
+.pl-shift-byname-table td { padding: 2px; }
+.pl-shift-byname-name {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .76rem; font-weight: 600; color: var(--text); padding-right: 8px;
+  white-space: nowrap;
+}
+.pl-shift-byname-cell {
+  width: 30px; height: 30px; min-width: 30px; text-align: center; vertical-align: middle;
+  font-size: .7rem; font-weight: 700; border-radius: var(--r-sm); border: 1px solid var(--border);
+}
+.pl-byname-empty { color: var(--text-3); font-weight: 400; background: var(--bg); }
+.pl-byname-leave { color: #DC2626; background: #FEE2E2; border-color: #FCA5A5; }
+
+.pl-byname-legend {
+  display: flex; flex-wrap: wrap; gap: 7px 12px;
+  padding: 10px 2px 2px; border-top: 1px solid var(--border); margin-top: 8px;
+}
+.pl-byname-legend-item { display: flex; align-items: center; gap: 5px; font-size: .7rem; color: var(--text-3); }
+.pl-byname-legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; display: inline-block; }
+
 /* ── Dipakai di kedua tampilan ── */
 .pl-shift-cell-empty { font-size: .72rem; color: var(--text-3); border: 1px dashed var(--border); border-radius: var(--r-sm); text-align: center; padding: 6px 10px; flex-shrink: 0; }
 .pl-shift-chip {
@@ -189,7 +217,9 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-fab:active { transform: var(--active-press); }
 .pl-fab:disabled { opacity: .6; cursor: default; }
 .pl-view-toggle { bottom: calc(env(safe-area-inset-bottom) + 16px); }
-.pl-share-fab { bottom: calc(env(safe-area-inset-bottom) + 74px); }
+.pl-lihat-toggle { bottom: calc(env(safe-area-inset-bottom) + 74px); }
+.pl-lihat-toggle.active { background: var(--text); }
+.pl-share-fab { bottom: calc(env(safe-area-inset-bottom) + 132px); }
 
 /* ── Bottom sheet overlay ── */
 .pl-overlay {

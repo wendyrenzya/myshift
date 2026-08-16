@@ -24,7 +24,8 @@ let openFaqIndex = null          // index FAQ yang lagi kebuka
 let shiftSchedules = []          // daftar jadwal shift (Shift Kantor, Shift Ronda Malam, dst)
 let activeScheduleId = null      // jadwal yang lagi dibuka; null = halaman daftar jadwal
 let showScheduleForm = false     // sheet buat jadwal baru
-let gridViewMode = 'old'         // 'old' (per-hari, cell berjejer) atau 'new' (kartu per-shift) — toggle mengambang
+let gridViewMode = 'old'         // 'old' (per-hari) atau 'new' (kartu per-shift) — dipilih lewat tombol Edit
+let showByNameView = false       // true = tampilan Lihat (matrix personil x hari, ringkas) — dipilih lewat tombol Lihat
 let shiftPersonnel = [], shiftConfig = null, shiftAssignments = []   // scoped ke activeScheduleId
 let shiftLeaves = []         // { personnel_id, date } — personil yang libur, scoped ke activeScheduleId
 let showShiftSettings = false    // popup kelola personil & shift utk jadwal aktif
@@ -488,7 +489,7 @@ async function updateShiftLabel(index, value) {
 }
 
 // ══════════════════════════════════════════════════════════
-// ── GRID MINGGUAN — 2 tampilan (toggle) ──
+// ── GRID MINGGUAN — 3 tampilan (toggle) ──
 // ══════════════════════════════════════════════════════════
 
 // Tampilan lama: per-hari, cell shift berjejer ke samping (default, lebih disukai)
@@ -543,6 +544,59 @@ function renderShiftGridCards() {
     html += `</div></div>`
   }
   return html
+}
+
+// Tampilan nama: matrix personil x hari, ringkas — cell = kode huruf shift + warna, legenda di bawah
+function renderShiftGridByName() {
+  const n = shiftConfig.shifts_per_day
+  const labels = shiftConfig.shift_labels
+  const start = new Date(shiftWeekStart + 'T00:00:00')
+  const dayHeaders = []
+  for (let di = 0; di < 7; di++) {
+    const d = new Date(start); d.setDate(start.getDate() + di)
+    dayHeaders.push(`${DAYS_ID[d.getDay()].slice(0, 3)} ${d.getDate()}`)
+  }
+  let rowsHtml = ''
+  for (const p of shiftPersonnel) {
+    let cellsHtml = ''
+    for (let di = 0; di < 7; di++) {
+      const onLeave = isOnLeave(p.id, di)
+      let si = -1
+      for (let k = 0; k < n; k++) {
+        const a = shiftAssignments.find(x => x.week_start === shiftWeekStart && x.day_index === di && x.shift_index === k)
+        if (a && (a.personnel_ids || []).includes(p.id)) { si = k; break }
+      }
+      if (onLeave) {
+        cellsHtml += `<td class="pl-shift-byname-cell pl-byname-leave">L</td>`
+      } else if (si === -1) {
+        cellsHtml += `<td class="pl-shift-byname-cell pl-byname-empty">–</td>`
+      } else {
+        const label = labels[si] || `Shift ${si + 1}`
+        const code = label.trim().charAt(0).toUpperCase() || '?'
+        const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
+        cellsHtml += `<td class="pl-shift-byname-cell" style="background:${color}22;color:${color};border-color:${color}55">${code}</td>`
+      }
+    }
+    rowsHtml += `<tr><td class="pl-shift-byname-name"><span class="pl-shift-dot" style="background:${p.color}"></span>${esc(p.name.split(' ')[0])}</td>${cellsHtml}</tr>`
+  }
+  const legendItems = labels.slice(0, n).map((l, si) => {
+    const label = l || `Shift ${si + 1}`
+    const code = label.trim().charAt(0).toUpperCase() || '?'
+    const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
+    return `<span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:${color}"></span>${esc(code)} = ${esc(label)}</span>`
+  }).join('')
+  return `
+    <div class="pl-shift-byname-wrap">
+      <table class="pl-shift-byname-table">
+        <thead><tr><th></th>${dayHeaders.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="pl-byname-legend">
+      ${legendItems}
+      <span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:#DC2626"></span>L = Libur</span>
+    </div>
+  `
 }
 
 function renderShiftSheet() {
@@ -828,7 +882,7 @@ function renderScheduleDetail() {
         <span class="pl-week-label">${fmtWeekRange(shiftWeekStart)}</span>
         <button class="pl-week-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
       </div>
-      ${gridViewMode === 'new' ? renderShiftGridCards() : renderShiftGridOld()}
+      ${showByNameView ? renderShiftGridByName() : gridViewMode === 'new' ? renderShiftGridCards() : renderShiftGridOld()}
       <button type="button" id="pl-duplicate-btn" class="pl-settings-toggle" style="margin-top:14px;margin-bottom:8px">
         ${svgIcon('copy').replace('<svg ', '<svg style="width:15px;height:15px" ')}
         <span>Duplikat Jadwal Minggu Lalu</span>
@@ -840,7 +894,10 @@ function renderScheduleDetail() {
       <button type="button" id="pl-share-btn" class="pl-fab pl-share-fab" aria-label="Bagikan Jadwal" title="Bagikan Jadwal" ${sharing ? 'disabled' : ''}>
         ${svgIcon('share').replace('<svg ', '<svg style="width:18px;height:18px" ')}
       </button>
-      <button type="button" class="pl-fab pl-view-toggle" id="pl-view-toggle" aria-label="Ganti tampilan grid" title="Ganti tampilan grid">
+      <button type="button" class="pl-fab pl-lihat-toggle ${showByNameView ? 'active' : ''}" id="pl-lihat-toggle" aria-label="Tampilan Lihat (ringkasan per nama)" title="Tampilan Lihat">
+        ${svgIcon('eye').replace('<svg ', '<svg style="width:18px;height:18px" ')}
+      </button>
+      <button type="button" class="pl-fab pl-view-toggle" id="pl-edit-toggle" aria-label="Tampilan Edit — ganti layout grid" title="Tampilan Edit">
         ${svgIcon('swap').replace('<svg ', '<svg style="width:18px;height:18px" ')}
       </button>
     `}
@@ -874,8 +931,12 @@ function wireScheduleDetail() {
       if (!hasAny && !confirm('Jadwal minggu ini masih kosong. Tetap lanjut bagikan?')) return
       showShareSheet = true; render()
     })
-    app.querySelector('#pl-view-toggle').addEventListener('click', () => {
-      gridViewMode = gridViewMode === 'old' ? 'new' : 'old'
+    app.querySelector('#pl-edit-toggle').addEventListener('click', () => {
+      if (showByNameView) { showByNameView = false } else { gridViewMode = gridViewMode === 'old' ? 'new' : 'old' }
+      render()
+    })
+    app.querySelector('#pl-lihat-toggle').addEventListener('click', () => {
+      showByNameView = true
       render()
     })
   }
