@@ -244,7 +244,7 @@ function renderScheduleHome() {
       <button type="button" class="pl-submit pl-submit-auto" id="pl-sched-add">+ Buat Jadwal Baru</button>
     </div>
 
-    <a href="FEATURE_REQUEST_FORM_URL" target="_blank" rel="noopener" class="pl-feature-request-link">
+    <a href="https://forms.gle/6YD55dFtQAUL4oiQ8" target="_blank" rel="noopener" class="pl-feature-request-link">
       ${svgIcon('externalLink').replace('<svg ', '<svg style="width:14px;height:14px" ')} Request Fitur Baru
     </a>
 
