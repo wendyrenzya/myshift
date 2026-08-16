@@ -178,9 +178,9 @@ function renderLanding() {
         </button>
       </div>
       <div class="pl-landing-features">
-        <div class="pl-feature-card">${svgIcon('usersRound').replace('<svg ', '<svg style="width:22px;height:22px" ')}<div class="pl-feature-card-title">Banyak Jadwal</div></div>
-        <div class="pl-feature-card">${svgIcon('share').replace('<svg ', '<svg style="width:22px;height:22px" ')}<div class="pl-feature-card-title">Bagikan Sekali Tap</div></div>
-        <div class="pl-feature-card">${svgIcon('download').replace('<svg ', '<svg style="width:22px;height:22px" ')}<div class="pl-feature-card-title">Backup Kapan Aja</div></div>
+        <div class="pl-feature-card"><span class="pl-feature-icon-badge">${svgIcon('usersRound').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span><div class="pl-feature-card-title">Banyak Jadwal</div></div>
+        <div class="pl-feature-card"><span class="pl-feature-icon-badge">${svgIcon('share').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span><div class="pl-feature-card-title">Bagikan Sekali Tap</div></div>
+        <div class="pl-feature-card"><span class="pl-feature-icon-badge">${svgIcon('download').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span><div class="pl-feature-card-title">Backup Kapan Aja</div></div>
       </div>
       <div class="pl-faq">
         <div class="pl-faq-title">Pertanyaan Umum</div>
