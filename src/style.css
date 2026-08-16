@@ -376,6 +376,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 }
 .pl-drive-notice svg { flex-shrink: 0; margin-top: 1px; color: #B45309; }
 .pl-drive-notice strong { font-weight: 700; }
+.pl-drive-notice a { color: #92400E; font-weight: 700; text-decoration: underline; }
 
 /* ── Animasi "pop" saat assign/undo personil di sheet shift ── */
 @keyframes pl-pop-anim {

@@ -3,6 +3,9 @@ import { svgIcon } from './icons.js'
 import { getAllLocal, putLocal, deleteLocal } from './db.js'
 import { driveIsConfigured, driveSignIn, driveSignOut, driveUpload, driveDownload } from './drive.js'
 
+// Logo resmi Google Drive (segitiga 4 warna) — dipakai di tombol connect, biar keliatan jelas ini fitur Google Drive
+const GDRIVE_LOGO = '<svg width="16" height="16" viewBox="0 0 87.3 78" style="vertical-align:-3px;margin-right:4px" aria-hidden="true"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25l13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>'
+
 const USERS32 = svgIcon('usersRound').replace('<svg ', '<svg style="width:32px;height:32px" ')
 
 const DAYS_ID   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu']
@@ -250,10 +253,10 @@ function renderScheduleHome() {
       ` : `
         <div class="pl-drive-notice">
           ${svgIcon('info').replace('<svg ', '<svg style="width:15px;height:15px" ')}
-          <span>Backup ini tersimpan di <strong>Drive kamu sendiri</strong>, bukan di server kami — kami nggak nyimpen atau bisa lihat isinya. Karena itu, kamu mungkin perlu <strong>login ulang tiap mau Backup/Restore</strong>, tergantung sesi Google di browser masih aktif atau nggak.</span>
+          <span>Backup ini tersimpan di <strong>Drive kamu sendiri</strong>, bukan di server kami — kami nggak nyimpen atau bisa lihat isinya. Karena itu, kamu mungkin perlu <strong>login ulang tiap mau Backup/Restore</strong>, tergantung sesi Google di browser masih aktif atau nggak. Baca <a href="/privacy.html" target="_blank" rel="noopener">Kebijakan Privasi</a> kami.</span>
         </div>
         ${!driveConnected ? `
-          <button type="button" class="pl-backup-btn" id="pl-drive-connect" style="width:100%" ${driveBusy ? 'disabled' : ''}>${svgIcon('cloud').replace('<svg ', '<svg style="width:16px;height:16px" ')} ${driveBusy ? 'Menghubungkan…' : 'Hubungkan Google Drive'}</button>
+          <button type="button" class="pl-backup-btn" id="pl-drive-connect" style="width:100%" ${driveBusy ? 'disabled' : ''}>${GDRIVE_LOGO} ${driveBusy ? 'Menghubungkan…' : 'Backup/Restore dengan Google Drive'}</button>
         ` : `
           <div class="pl-backup-actions">
             <button type="button" class="pl-backup-btn" id="pl-drive-backup" ${driveBusy ? 'disabled' : ''}>${svgIcon('cloudUpload').replace('<svg ', '<svg style="width:16px;height:16px" ')} Backup ke Drive</button>

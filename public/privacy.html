@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kebijakan Privasi — MyShift</title>
+  <style>
+    :root { --graphite: #374151; --bg: #f7f7f8; --panel: #ffffff; --border: #e2e2e6; --text: #1f2328; --muted: #6b7280; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.65; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 32px 20px 60px; }
+    h1 { font-size: 22px; margin: 0 0 4px; color: var(--graphite); }
+    .updated { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    h2 { font-size: 16px; color: var(--graphite); margin: 28px 0 8px; }
+    p, li { font-size: 14.5px; color: var(--text); }
+    ul { padding-left: 20px; }
+    a { color: var(--graphite); font-weight: 600; }
+    .back { display: inline-block; margin-bottom: 20px; font-size: 14px; color: var(--muted); text-decoration: none; }
+    .note { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 32px; font-size: 13.5px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/">&larr; Kembali ke MyShift</a>
+    <h1>Kebijakan Privasi MyShift</h1>
+    <div class="updated">Terakhir diperbarui: 16 Agustus 2026</div>
+
+    <p>MyShift adalah aplikasi penjadwalan shift yang berjalan sepenuhnya di perangkat kamu. Halaman ini menjelaskan data apa saja yang diproses MyShift dan bagaimana MyShift memperlakukannya, termasuk saat kamu memilih menyambungkan Google Drive.</p>
+
+    <h2>Data yang tersimpan di perangkat kamu</h2>
+    <p>Semua data jadwal — nama personil, jadwal shift, catatan, dan riwayat cuti — tersimpan langsung di penyimpanan lokal browser kamu (IndexedDB). Data ini <strong>tidak pernah dikirim ke server MyShift</strong>, karena MyShift tidak punya server atau database sendiri. Tidak ada akun yang dibutuhkan untuk memakai MyShift.</p>
+
+    <h2>Integrasi Google Drive (opsional)</h2>
+    <p>Kalau kamu memilih menyambungkan Google Drive untuk fitur Backup/Restore, berikut yang perlu kamu tahu:</p>
+    <ul>
+      <li>MyShift meminta izin akses dengan scope <code>drive.file</code> — scope paling sempit yang tersedia dari Google, artinya MyShift <strong>hanya bisa melihat atau mengubah file yang MyShift sendiri buat</strong> di Drive kamu (satu file bernama <code>myshift-backup.json</code>), dan tidak bisa mengakses file lain di Drive kamu.</li>
+      <li>Proses backup dan restore terjadi <strong>langsung antara browser kamu dan server Google</strong> — file backup tidak pernah melewati atau tersimpan di server MyShift, karena memang tidak ada server tersebut.</li>
+      <li>Sesi login Google bersifat sementara (session-only) dan tidak disimpan permanen oleh MyShift. Kamu mungkin perlu login ulang di sesi berikutnya.</li>
+      <li>Kamu bisa memutus akses ini kapan saja lewat tombol "Putuskan Google Drive" di aplikasi, atau lewat halaman <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">izin akun Google</a> kamu.</li>
+    </ul>
+
+    <h2>Berbagi data ke pihak ketiga</h2>
+    <p>MyShift tidak menjual, menyewakan, atau membagikan data kamu ke pihak ketiga mana pun. MyShift juga tidak menggunakan data kamu untuk iklan atau pelacakan.</p>
+
+    <h2>Kontak</h2>
+    <p>Ada pertanyaan soal privasi? Hubungi <a href="mailto:support@myshift.my.id">support@myshift.my.id</a>.</p>
+
+    <div class="note">Kebijakan ini bisa diperbarui sewaktu-waktu kalau ada fitur baru yang memproses data pengguna. Perubahan akan tercermin di tanggal "Terakhir diperbarui" di atas.</div>
+  </div>
+</body>
+</html>
