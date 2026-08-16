@@ -531,17 +531,19 @@ async function importBackupFile(file) {
 
 function renderTimeRangeBoxes(i, t) {
   t = t || {}
+  const isLast = shiftConfig && i === shiftConfig.shifts_per_day - 1
   return `
     <div class="pl-shift-time-range">
-      <span class="pl-time-range-label">Mulai</span>
       <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="startH" value="${esc(t.startH || '')}" placeholder="00" />
       <span class="pl-time-sep">:</span>
       <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="startM" value="${esc(t.startM || '')}" placeholder="00" />
-      <span class="pl-time-range-label">Sampai</span>
+      <span class="pl-time-sep">–</span>
       <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="endH" value="${esc(t.endH || '')}" placeholder="00" />
       <span class="pl-time-sep">:</span>
       <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="endM" value="${esc(t.endM || '')}" placeholder="00" />
+      <span class="pl-time-24h-hint">Format 24 jam</span>
     </div>
+    ${isLast ? `<button type="button" class="pl-time-autofill" id="pl-time-autofill-last">Isi otomatis dari sisa jam shift lain</button>` : ''}
   `
 }
 
@@ -653,6 +655,8 @@ function wireShiftSettingsSheet() {
     })
     inp.addEventListener('blur', e => { handleTimeBoxBlur(e.target) })
   })
+  const autofillBtn = app.querySelector('#pl-time-autofill-last')
+  if (autofillBtn) autofillBtn.addEventListener('click', autofillLastShiftTime)
 }
 
 async function addShiftPersonnel(name) {
@@ -692,6 +696,19 @@ function formatShiftTime(t) {
   return `${t.startH}:${t.startM} – ${t.endH}:${t.endM}`
 }
 
+function timeToMin(h, m) { return Number(h) * 60 + Number(m) }
+
+// Cek 2 range waktu bentrok atau nggak — nyebrang tengah malam (end <= start) dianggap lanjut ke hari berikutnya.
+function timesOverlap(a, b) {
+  const aS = timeToMin(a.startH, a.startM)
+  const aE0 = timeToMin(a.endH, a.endM)
+  const aE = aE0 <= aS ? aE0 + 1440 : aE0
+  const bS = timeToMin(b.startH, b.startM)
+  const bE0 = timeToMin(b.endH, b.endM)
+  const bE = bE0 <= bS ? bE0 + 1440 : bE0
+  return aS < bE && bS < aE
+}
+
 async function updateShiftTimeField(index, field, rawValue) {
   const times = shiftConfig.shift_times ? [...shiftConfig.shift_times] : []
   while (times.length < shiftConfig.shifts_per_day) times.push(null)
@@ -700,6 +717,53 @@ async function updateShiftTimeField(index, field, rawValue) {
   const allEmpty = !next.startH && !next.startM && !next.endH && !next.endM
   times[index] = allEmpty ? null : next
   shiftConfig = { ...shiftConfig, shift_times: times }
+  await putLocal('shift_config', shiftConfig)
+  render()
+
+  // Range shift ini baru aja lengkap (4 kotak keisi semua) -> cek bentrok sama shift lain
+  const t = times[index]
+  if (t && t.startH && t.startM && t.endH && t.endM) {
+    for (let j = 0; j < times.length; j++) {
+      if (j === index) continue
+      const o = times[j]
+      if (!o || !o.startH || !o.startM || !o.endH || !o.endM) continue
+      if (timesOverlap(t, o)) {
+        const labels = shiftConfig.shift_labels
+        await customAlert(`Range waktu ini bentrok dengan "${esc(labels[j] || 'Shift ' + (j + 1))}" (${o.startH}:${o.startM} – ${o.endH}:${o.endM}). Range shift ini di-reset, isi ulang ya.`, { title: 'Range waktu bentrok' })
+        times[index] = null
+        shiftConfig = { ...shiftConfig, shift_times: times }
+        await putLocal('shift_config', shiftConfig)
+        render()
+        break
+      }
+    }
+  }
+}
+
+// Isi otomatis shift TERAKHIR dengan sisa waktu dari 24 jam yang belum ke-cover shift lain
+// (mulai = jam akhir paling telat di antara shift lain, sampai = jam mulai paling awal di antara shift lain)
+async function autofillLastShiftTime() {
+  const n = shiftConfig.shifts_per_day
+  const lastIdx = n - 1
+  const times = shiftConfig.shift_times || []
+  const others = times.filter((t, i) => i !== lastIdx && t && t.startH && t.startM && t.endH && t.endM)
+  if (others.length === 0) {
+    await customAlert('Isi range waktu shift lain dulu, baru bisa di-autofill dari sisanya.')
+    return
+  }
+  let maxEnd = null, maxEndMin = -1
+  let minStart = null, minStartMin = Infinity
+  others.forEach(o => {
+    const startMin = timeToMin(o.startH, o.startM)
+    const endMin0 = timeToMin(o.endH, o.endM)
+    const endMin = endMin0 <= startMin ? endMin0 + 1440 : endMin0
+    if (endMin > maxEndMin) { maxEndMin = endMin; maxEnd = { h: o.endH, m: o.endM } }
+    if (startMin < minStartMin) { minStartMin = startMin; minStart = { h: o.startH, m: o.startM } }
+  })
+  const newTimes = [...times]
+  while (newTimes.length < n) newTimes.push(null)
+  newTimes[lastIdx] = { startH: maxEnd.h, startM: maxEnd.m, endH: minStart.h, endM: minStart.m }
+  shiftConfig = { ...shiftConfig, shift_times: newTimes }
   await putLocal('shift_config', shiftConfig)
   render()
 }
