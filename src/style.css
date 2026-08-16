@@ -240,7 +240,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-sheet {
   background: var(--bg-card); width: 100%; max-width: 480px;
   border-radius: 20px 20px 0 0; padding: 18px 16px calc(env(safe-area-inset-bottom) + 16px);
-  max-height: calc(var(--viewport-height) - 8px); overflow-y: auto;
+  max-height: calc(var(--viewport-height) * .4); overflow-y: auto;
 }
 .pl-sheet-title { font-size: .92rem; font-weight: 700; margin-bottom: 14px; }
 .pl-sheet-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
@@ -279,11 +279,16 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 
 /* ── Tombol "Minggu ini" — link kecil rata kiri di atas navigasi minggu ── */
 .pl-week-today-btn {
-  display: block;
+  display: block; overflow: hidden;
   background: none; border: none; color: var(--coral);
   font-size: .78rem; font-weight: 700; cursor: pointer; padding: 2px 4px;
-  margin: 0 0 6px 2px; text-align: left;
+  margin: 0 0 6px 2px; text-align: left; max-height: 26px; opacity: 1;
   text-decoration: none; animation: pl-breathe 2.4s ease-in-out infinite;
+  transition: max-height .3s ease, opacity .25s ease, margin .3s ease, padding .3s ease;
+}
+.pl-week-today-btn.pl-hidden {
+  max-height: 0; opacity: 0; margin: 0; padding-top: 0; padding-bottom: 0;
+  pointer-events: none; animation: none;
 }
 @keyframes pl-breathe {
   0%, 100% { opacity: .55; }
@@ -344,10 +349,14 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   padding: 14px 10px; margin-bottom: 12px;
   transition: padding var(--ease-out), box-shadow var(--ease-out);
 }
-.pl-period-card.floating { padding: 7px 8px; box-shadow: var(--shadow-md); }
+.pl-period-card.floating {
+  padding: 5px 6px; box-shadow: var(--shadow-md);
+  background: rgba(255,255,255,.6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.5);
+}
 .pl-period-card.floating .pl-period-label { display: none; }
-.pl-period-card.floating .pl-period-range { font-size: .78rem; transition: font-size var(--ease-out); }
-.pl-period-card.floating .pl-period-nav-btn { width: 30px; height: 30px; font-size: 1rem; }
+.pl-period-card.floating .pl-period-range { font-size: .68rem; transition: font-size var(--ease-out); }
+.pl-period-card.floating .pl-period-nav-btn { width: 26px; height: 26px; font-size: .85rem; background: rgba(255,255,255,.5); }
 .pl-period-nav-btn {
   flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
   background: var(--bg-input); border: none; color: var(--text-2);
@@ -370,6 +379,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   cursor: pointer; font-family: inherit; transition: background var(--ease), color var(--ease);
 }
 .pl-view-tab.active { background: var(--accent); color: var(--white); font-weight: 700; }
+#pl-tab-byname.active { background: var(--coral); }
 .pl-view-tabs-hint { font-size: .68rem; color: var(--text-3); text-align: center; margin: -10px 0 16px; }
 
 /* ── Halaman Landing / Splash ── */

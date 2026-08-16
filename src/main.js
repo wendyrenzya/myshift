@@ -1101,7 +1101,7 @@ function renderScheduleDetail() {
         <div class="empty-sub">Buka "Kelola Personil & Shift" di atas untuk mulai.</div>
       </div>
     ` : `
-      ${!isCurrentWeek() ? `<button type="button" class="pl-week-today-btn" id="pl-week-today">&lsaquo; Minggu ini</button>` : ''}
+      <button type="button" class="pl-week-today-btn ${isCurrentWeek() ? 'pl-hidden' : ''}" id="pl-week-today">&lsaquo; Minggu ini</button>
       <div class="pl-period-card">
         <button class="pl-period-nav-btn" id="pl-week-prev" aria-label="Minggu sebelumnya">&lsaquo;</button>
         <div class="pl-period-center">
@@ -1176,13 +1176,23 @@ function wireScheduleDetail() {
 // ══════════════════════════════════════════════════════════
 
 function render() {
-  if (showLanding) {
-    app.innerHTML = renderLanding()
-    wireLanding()
-    return
+  const doRender = () => {
+    if (showLanding) {
+      app.innerHTML = renderLanding()
+      wireLanding()
+      return
+    }
+    app.innerHTML = activeScheduleId ? renderScheduleDetail() : renderScheduleHome()
+    if (activeScheduleId) wireScheduleDetail(); else wireScheduleHome()
   }
-  app.innerHTML = activeScheduleId ? renderScheduleDetail() : renderScheduleHome()
-  if (activeScheduleId) wireScheduleDetail(); else wireScheduleHome()
+  // View Transitions API: kalau ada perubahan layout (misal tombol "Minggu ini" muncul/hilang,
+  // konten di bawahnya jadi ke-push), browser animasiin bedanya secara otomatis — smooth,
+  // bukan loncat instan. Fallback biasa kalau browser belum dukung.
+  if (document.startViewTransition) {
+    document.startViewTransition(doRender)
+  } else {
+    doRender()
+  }
 }
 
 function esc(s) {
