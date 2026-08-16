@@ -173,10 +173,18 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-shift-byname-wrap { overflow-x: auto; margin-bottom: 4px; }
 .pl-shift-byname-table { border-collapse: collapse; width: 100%; min-width: 300px; }
 .pl-shift-byname-table th {
-  font-size: .6rem; font-weight: 700; color: var(--text-3); text-transform: uppercase;
-  letter-spacing: .02em; padding: 0 2px 6px; text-align: center; white-space: nowrap;
+  padding: 0 2px 6px; text-align: center; vertical-align: bottom;
 }
 .pl-shift-byname-table th:first-child { text-align: left; }
+.pl-byname-day {
+  font-size: .58rem; font-weight: 700; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: .02em; margin-bottom: 3px; white-space: nowrap;
+}
+.pl-byname-date { display: block; margin: 0 auto; }
+.pl-byname-date circle { fill: var(--bg-input); stroke: var(--border); stroke-width: 1; }
+.pl-byname-date text { font-size: 9px; font-weight: 700; fill: var(--text-2); font-family: var(--font); }
+.pl-byname-date.today circle { fill: var(--module-color, var(--accent)); stroke: none; }
+.pl-byname-date.today text { fill: #fff; }
 .pl-shift-byname-table td { padding: 2px; }
 .pl-shift-byname-name {
   display: flex; align-items: center; gap: 5px;

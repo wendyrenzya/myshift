@@ -546,15 +546,40 @@ function renderShiftGridCards() {
   return html
 }
 
-// Tampilan nama: matrix personil x hari, ringkas — cell = kode huruf shift + warna, legenda di bawah
+// Kode ringkas per shift buat tampilan Lihat — hindari tabrakan huruf pertama
+// (misal "Shift 1" & "Shift 2" sama-sama mulai huruf "S"): coba angka di akhir label dulu,
+// baru 2-huruf-inisial, baru nomor urut shift sebagai jalan terakhir.
+function computeShiftCodes(labels) {
+  const clean = labels.map(l => (l || '').trim())
+  const codes = clean.map(l => l.charAt(0).toUpperCase() || '?')
+  const findDupes = arr => arr.map((v, i) => arr.some((w, j) => j !== i && w === v))
+  findDupes(codes).forEach((isDup, i) => {
+    if (!isDup) return
+    const m = clean[i].match(/(\d+)\s*$/)
+    if (m) codes[i] = codes[i] + m[1]
+  })
+  findDupes(codes).forEach((isDup, i) => {
+    if (!isDup) return
+    const words = clean[i].split(/\s+/).filter(Boolean)
+    codes[i] = words.length > 1
+      ? (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
+      : clean[i].slice(0, 2).replace(/^./, c => c.toUpperCase())
+  })
+  findDupes(codes).forEach((isDup, i) => { if (isDup) codes[i] = codes[i] + (i + 1) })
+  return codes
+}
+
+// Tampilan nama: matrix personil x hari, ringkas — cell = kode shift + warna, legenda di bawah
 function renderShiftGridByName() {
   const n = shiftConfig.shifts_per_day
   const labels = shiftConfig.shift_labels
+  const codes = computeShiftCodes(labels)
   const start = new Date(shiftWeekStart + 'T00:00:00')
+  const today = fmtYMD(new Date())
   const dayHeaders = []
   for (let di = 0; di < 7; di++) {
     const d = new Date(start); d.setDate(start.getDate() + di)
-    dayHeaders.push(`${DAYS_ID[d.getDay()].slice(0, 3)} ${d.getDate()}`)
+    dayHeaders.push({ abbr: DAYS_ID[d.getDay()].slice(0, 3), date: d.getDate(), isToday: fmtYMD(d) === today })
   }
   let rowsHtml = ''
   for (const p of shiftPersonnel) {
@@ -571,24 +596,30 @@ function renderShiftGridByName() {
       } else if (si === -1) {
         cellsHtml += `<td class="pl-shift-byname-cell pl-byname-empty">–</td>`
       } else {
-        const label = labels[si] || `Shift ${si + 1}`
-        const code = label.trim().charAt(0).toUpperCase() || '?'
         const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
-        cellsHtml += `<td class="pl-shift-byname-cell" style="background:${color}22;color:${color};border-color:${color}55">${code}</td>`
+        cellsHtml += `<td class="pl-shift-byname-cell" style="background:${color}22;color:${color};border-color:${color}55">${esc(codes[si])}</td>`
       }
     }
     rowsHtml += `<tr><td class="pl-shift-byname-name"><span class="pl-shift-dot" style="background:${p.color}"></span>${esc(p.name.split(' ')[0])}</td>${cellsHtml}</tr>`
   }
+  const headerHtml = dayHeaders.map(h => `
+    <th>
+      <div class="pl-byname-day">${h.abbr}</div>
+      <svg class="pl-byname-date${h.isToday ? ' today' : ''}" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+        <circle cx="11" cy="11" r="10"></circle>
+        <text x="11" y="11" text-anchor="middle" dominant-baseline="central">${h.date}</text>
+      </svg>
+    </th>
+  `).join('')
   const legendItems = labels.slice(0, n).map((l, si) => {
     const label = l || `Shift ${si + 1}`
-    const code = label.trim().charAt(0).toUpperCase() || '?'
     const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
-    return `<span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:${color}"></span>${esc(code)} = ${esc(label)}</span>`
+    return `<span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:${color}"></span>${esc(codes[si])} = ${esc(label)}</span>`
   }).join('')
   return `
     <div class="pl-shift-byname-wrap">
       <table class="pl-shift-byname-table">
-        <thead><tr><th></th>${dayHeaders.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <thead><tr><th></th>${headerHtml}</tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
