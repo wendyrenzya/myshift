@@ -218,8 +218,9 @@ function wireLanding() {
 
 function renderScheduleHome() {
   return `
+    <div class="pl-sched-logo"><img src="/Full.png" alt="MyShift" /></div>
     <div class="pl-sched-intro">
-      <div class="pl-sched-intro-title">Jadwal Shift</div>
+      <div class="pl-sched-intro-title">List Jadwal Shift</div>
       <div class="pl-sched-intro-sub">Tiap jadwal punya personil & jadwal mingguan sendiri-sendiri.</div>
     </div>
     ${shiftSchedules.length === 0 ? `
@@ -234,12 +235,18 @@ function renderScheduleHome() {
           <div class="pl-sched-card" data-id="${s.id}">
             <span class="pl-shift-dot" style="background:${s.color}"></span>
             <span class="pl-sched-card-name">${esc(s.name)}</span>
-            <button type="button" class="pl-sched-del" data-id="${s.id}" aria-label="Hapus jadwal">${svgIcon('closeIcon').replace('<svg ', '<svg style="width:13px;height:13px" ')}</button>
+            <button type="button" class="pl-sched-del" data-id="${s.id}" aria-label="Hapus jadwal">${svgIcon('trash').replace('<svg ', '<svg style="width:16px;height:16px" ')}</button>
           </div>
         `).join('')}
       </div>
     `}
-    <button type="button" class="pl-submit" id="pl-sched-add">+ Tambah Jadwal Shift</button>
+    <div style="text-align:center">
+      <button type="button" class="pl-submit pl-submit-auto" id="pl-sched-add">+ Buat Jadwal Baru</button>
+    </div>
+
+    <a href="FEATURE_REQUEST_FORM_URL" target="_blank" rel="noopener" class="pl-feature-request-link">
+      ${svgIcon('externalLink').replace('<svg ', '<svg style="width:14px;height:14px" ')} Request Fitur Baru
+    </a>
 
     <div class="pl-backup-box">
       <div class="pl-backup-title">${svgIcon('download').replace('<svg ', '<svg style="width:15px;height:15px" ')} Backup &amp; Restore Data</div>
