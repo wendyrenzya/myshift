@@ -307,7 +307,7 @@ async function driveConnect() {
     driveStatusText = 'Terhubung. Belum ada backup tersimpan di sesi ini.'
   } catch (err) {
     console.error(err)
-    alert(err.message || 'Gagal terhubung ke Google Drive.')
+    alert('Belum berhasil terhubung ke Google Drive. Kalau tombol Backup/Restore belum muncul, tap "Hubungkan Google Drive" lagi.')
   } finally {
     driveBusy = false; render()
   }
