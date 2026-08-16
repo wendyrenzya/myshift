@@ -302,9 +302,9 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 
 /* ── Halaman daftar jadwal (home) ── */
 .pl-sched-logo { text-align: center; margin-bottom: 14px; }
-.pl-sched-logo img { width: 160px; height: auto; }
+.pl-sched-logo img { width: 480px; max-width: 100%; height: auto; filter: drop-shadow(0 6px 16px rgba(255,127,80,.5)); }
 .pl-sched-intro { margin-bottom: 20px; text-align: center; }
-.pl-sched-intro-title { font-size: 1.35rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+.pl-sched-intro-title { font-size: 1.05rem; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
 .pl-sched-intro-sub { font-size: .88rem; color: var(--text-3); line-height: 1.5; }
 .pl-sched-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .pl-sched-card {
@@ -445,6 +445,10 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-backup-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 16px; margin-top: 18px; }
 .pl-backup-title { display: flex; align-items: center; gap: 7px; font-size: .86rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 .pl-backup-hint { font-size: .78rem; color: var(--text-3); line-height: 1.5; margin-bottom: 12px; }
+.pl-backup-hint-main {
+  background: #F5F5F4; border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
 .pl-backup-actions { display: flex; flex-direction: row; gap: 8px; }
 .pl-backup-actions .pl-backup-btn { flex: 1; }
 .pl-backup-btn {

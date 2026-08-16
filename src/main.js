@@ -220,7 +220,7 @@ function renderScheduleHome() {
   return `
     <div class="pl-sched-logo"><img src="/Full.png" alt="MyShift" /></div>
     <div class="pl-sched-intro">
-      <div class="pl-sched-intro-title">List Jadwal Shift</div>
+      <div class="pl-sched-intro-title">List Jadwal</div>
       <div class="pl-sched-intro-sub">Tiap jadwal punya personil & jadwal mingguan sendiri-sendiri.</div>
     </div>
     ${shiftSchedules.length === 0 ? `
@@ -246,7 +246,7 @@ function renderScheduleHome() {
 
     <div class="pl-backup-box">
       <div class="pl-backup-title">${svgIcon('download').replace('<svg ', '<svg style="width:15px;height:15px" ')} Backup &amp; Restore Data</div>
-      <div class="pl-backup-hint">Data cuma tersimpan di perangkat ini. Backup rutin biar gak hilang kalau ganti HP atau cache browser kehapus.</div>
+      <div class="pl-backup-hint pl-backup-hint-main">Data cuma tersimpan di perangkat ini. Backup rutin biar gak hilang kalau ganti HP atau cache browser kehapus.</div>
       <div class="pl-backup-actions">
         <button type="button" class="pl-backup-btn" id="pl-backup-export">${svgIcon('download').replace('<svg ', '<svg style="width:16px;height:16px" ')} Backup (JSON)</button>
         <button type="button" class="pl-backup-btn" id="pl-backup-import">${svgIcon('upload').replace('<svg ', '<svg style="width:16px;height:16px" ')} Restore (JSON)</button>
