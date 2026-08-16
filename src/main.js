@@ -1009,8 +1009,8 @@ function renderScheduleDetail() {
     <div class="pl-sched-header">
       <button type="button" class="pl-sched-back" id="pl-sched-back">&lsaquo; Semua Jadwal</button>
       <div class="pl-sched-header-name">${esc(sched ? sched.name : '')}</div>
+      <button type="button" id="pl-shift-settings-toggle" class="pl-sched-settings-btn" aria-label="Kelola Personil & Shift" title="Kelola Personil & Shift">${svgIcon('wrench').replace('<svg ', '<svg style="width:16px;height:16px" ')}</button>
     </div>
-    <button id="pl-shift-settings-toggle" class="pl-settings-toggle">${svgIcon('wrench').replace('<svg ', '<svg style="width:15px;height:15px" ')} Kelola Personil & Shift</button>
     ${!ready ? `
       <div class="empty">
         <div class="empty-icon">${USERS32}</div>
@@ -1019,10 +1019,18 @@ function renderScheduleDetail() {
       </div>
     ` : `
       ${!isCurrentWeek() ? `<button type="button" class="pl-week-today-btn" id="pl-week-today">&lsaquo; Minggu ini</button>` : ''}
-      <div class="pl-week-nav">
-        <button class="pl-week-btn" id="pl-week-prev" aria-label="Minggu sebelumnya">&lsaquo;</button>
-        <span class="pl-week-label">${fmtWeekRange(shiftWeekStart)}</span>
-        <button class="pl-week-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
+      <div class="pl-period-card">
+        <button class="pl-period-nav-btn" id="pl-week-prev" aria-label="Minggu sebelumnya">&lsaquo;</button>
+        <div class="pl-period-center">
+          <div class="pl-period-label">Periode</div>
+          <div class="pl-period-range">${fmtWeekRange(shiftWeekStart)}</div>
+        </div>
+        <button class="pl-period-nav-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
+      </div>
+      <div class="pl-view-tabs">
+        <button type="button" class="pl-view-tab ${!showByNameView && gridViewMode === 'old' ? 'active' : ''}" id="pl-tab-old">Per Hari</button>
+        <button type="button" class="pl-view-tab ${!showByNameView && gridViewMode === 'new' ? 'active' : ''}" id="pl-tab-new">Per Shift</button>
+        <button type="button" class="pl-view-tab ${showByNameView ? 'active' : ''}" id="pl-tab-byname">Lihat Matriks</button>
       </div>
       ${showByNameView ? renderShiftGridByName() : gridViewMode === 'new' ? renderShiftGridCards() : renderShiftGridOld()}
       <button type="button" id="pl-duplicate-btn" class="pl-settings-toggle" style="margin-top:14px;margin-bottom:8px">
@@ -1035,12 +1043,6 @@ function renderScheduleDetail() {
       </button>
       <button type="button" id="pl-share-btn" class="pl-fab pl-share-fab" aria-label="Bagikan Jadwal" title="Bagikan Jadwal" ${sharing ? 'disabled' : ''}>
         ${svgIcon('share').replace('<svg ', '<svg style="width:18px;height:18px" ')}
-      </button>
-      <button type="button" class="pl-fab pl-lihat-toggle ${showByNameView ? 'active' : ''}" id="pl-lihat-toggle" aria-label="Tampilan Lihat (ringkasan per nama)" title="Tampilan Lihat">
-        ${svgIcon('eye').replace('<svg ', '<svg style="width:18px;height:18px" ')}
-      </button>
-      <button type="button" class="pl-fab pl-view-toggle" id="pl-edit-toggle" aria-label="Tampilan Edit — ganti layout grid" title="Tampilan Edit">
-        ${svgIcon('swap').replace('<svg ', '<svg style="width:18px;height:18px" ')}
       </button>
     `}
     ${showShiftSettings ? renderShiftSettingsSheet(!ready) : ''}
@@ -1073,14 +1075,9 @@ function wireScheduleDetail() {
       if (!hasAny && !confirm('Jadwal minggu ini masih kosong. Tetap lanjut bagikan?')) return
       showShareSheet = true; render()
     })
-    app.querySelector('#pl-edit-toggle').addEventListener('click', () => {
-      if (showByNameView) { showByNameView = false } else { gridViewMode = gridViewMode === 'old' ? 'new' : 'old' }
-      render()
-    })
-    app.querySelector('#pl-lihat-toggle').addEventListener('click', () => {
-      showByNameView = true
-      render()
-    })
+    app.querySelector('#pl-tab-old').addEventListener('click', () => { showByNameView = false; gridViewMode = 'old'; render() })
+    app.querySelector('#pl-tab-new').addEventListener('click', () => { showByNameView = false; gridViewMode = 'new'; render() })
+    app.querySelector('#pl-tab-byname').addEventListener('click', () => { showByNameView = true; render() })
   }
   if (activeShiftCell) wireShiftSheet()
   if (showShareSheet) wireShareSheet()

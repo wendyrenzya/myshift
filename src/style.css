@@ -225,10 +225,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 }
 .pl-fab:active { transform: var(--active-press); }
 .pl-fab:disabled { opacity: .6; cursor: default; }
-.pl-view-toggle { bottom: calc(env(safe-area-inset-bottom) + 16px); }
-.pl-lihat-toggle { bottom: calc(env(safe-area-inset-bottom) + 74px); }
-.pl-lihat-toggle.active { background: var(--text); }
-.pl-share-fab { bottom: calc(env(safe-area-inset-bottom) + 132px); }
+.pl-share-fab { bottom: calc(env(safe-area-inset-bottom) + 16px); }
 
 /* ── Bottom sheet overlay ── */
 .pl-overlay {
@@ -308,9 +305,43 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-sched-del { background: none; border: none; color: var(--text-3); cursor: pointer; padding: 4px; display: flex; }
 
 /* ── Header jadwal (di dalam detail satu jadwal) ── */
-.pl-sched-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.pl-sched-back { background: none; border: none; color: var(--text-3); font-size: .8rem; font-weight: 600; cursor: pointer; padding: 4px 0; }
-.pl-sched-header-name { font-size: .85rem; font-weight: 700; color: var(--text); }
+.pl-sched-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.pl-sched-back { background: none; border: none; color: var(--text-3); font-size: .8rem; font-weight: 600; cursor: pointer; padding: 4px 0; flex-shrink: 0; }
+.pl-sched-header-name { flex: 1; text-align: center; font-size: .92rem; font-weight: 700; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-sched-settings-btn {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text-2);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.pl-sched-settings-btn:active { border-color: var(--border-dark); }
+
+/* ── Kartu PERIODE (navigator minggu) ── */
+.pl-period-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--bg-card); border-radius: var(--r-xl); box-shadow: var(--shadow-sm);
+  padding: 14px 10px; margin-bottom: 12px;
+}
+.pl-period-nav-btn {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--bg-input); border: none; color: var(--text-2);
+  font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.pl-period-nav-btn:active { background: var(--border); }
+.pl-period-center { flex: 1; text-align: center; }
+.pl-period-label { font-size: .66rem; font-weight: 700; color: var(--coral); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+.pl-period-range { font-size: .95rem; font-weight: 800; color: var(--accent); }
+
+/* ── Segmented control: Per Hari / Per Shift / Lihat Matriks ── */
+.pl-view-tabs {
+  display: flex; background: var(--bg-card); border-radius: 999px; box-shadow: var(--shadow-sm);
+  padding: 4px; margin-bottom: 16px; gap: 2px;
+}
+.pl-view-tab {
+  flex: 1; background: none; border: none; border-radius: 999px;
+  padding: 9px 6px; font-size: .78rem; font-weight: 600; color: var(--text-2);
+  cursor: pointer; font-family: inherit; transition: background var(--ease), color var(--ease);
+}
+.pl-view-tab.active { background: var(--accent); color: var(--white); font-weight: 700; }
 
 /* ── Halaman Landing / Splash ── */
 .pl-landing { padding-top: 8px; }
