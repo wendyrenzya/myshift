@@ -244,10 +244,6 @@ function renderScheduleHome() {
       <button type="button" class="pl-submit pl-submit-auto" id="pl-sched-add">+ Buat Jadwal Baru</button>
     </div>
 
-    <a href="https://forms.gle/6YD55dFtQAUL4oiQ8" target="_blank" rel="noopener" class="pl-feature-request-link">
-      ${svgIcon('externalLink').replace('<svg ', '<svg style="width:14px;height:14px" ')} Request Fitur Baru
-    </a>
-
     <div class="pl-backup-box">
       <div class="pl-backup-title">${svgIcon('download').replace('<svg ', '<svg style="width:15px;height:15px" ')} Backup &amp; Restore Data</div>
       <div class="pl-backup-hint">Data cuma tersimpan di perangkat ini. Backup rutin biar gak hilang kalau ganti HP atau cache browser kehapus.</div>
@@ -277,6 +273,10 @@ function renderScheduleHome() {
         `}
       `}
     </div>
+
+    <a href="https://forms.gle/6YD55dFtQAUL4oiQ8" target="_blank" rel="noopener" class="pl-feature-request-link">
+      ${svgIcon('externalLink').replace('<svg ', '<svg style="width:14px;height:14px" ')} Request Fitur Baru
+    </a>
 
     ${showScheduleForm ? renderScheduleFormSheet() : ''}
   `
