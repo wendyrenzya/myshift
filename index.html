@@ -10,15 +10,26 @@
   <meta property="og:description" content="Atur jadwal shift tim kamu — kantor, ronda malam, apa aja — tanpa ribet dan tanpa perlu akun." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://myshift.my.id" />
+  <link rel="icon" type="image/png" href="/myshift_splash.png" />
+  <link rel="apple-touch-icon" href="/myshift_splash.png" />
   <title>MyShift</title>
+  <style>
+    #pl-splash {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #FAFAF8; display: flex; align-items: center; justify-content: center;
+      animation: pl-splash-fade .4s ease-out .6s forwards;
+    }
+    #pl-splash img { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 8px 24px rgba(55,65,81,.25); animation: pl-splash-pop .5s ease-out; }
+    @keyframes pl-splash-pop { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pl-splash-fade { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+  </style>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <div id="pl-splash"><img src="/myshift_splash.png" alt="MyShift" /></div>
   <div id="app">
     <div style="max-width:420px;margin:40px auto;padding:24px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-align:center;color:#1A1A1A">
-      <div style="width:64px;height:64px;margin:0 auto 16px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#374151;box-shadow:0 2px 8px rgba(0,0,0,.06)">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-      </div>
+      <img src="/myshift_splash.png" alt="MyShift" style="width:64px;height:64px;margin:0 auto 16px;border-radius:50%;display:block;box-shadow:0 2px 8px rgba(0,0,0,.06)" />
       <h1 style="margin:0 0 8px;font-size:1.5rem;font-weight:700;letter-spacing:-0.01em">MyShift</h1>
       <p style="margin:0 0 24px;font-size:.9rem;color:#6B6B6B;line-height:1.6;max-width:320px;margin-left:auto;margin-right:auto">Aplikasi gratis untuk mengatur jadwal shift tim kerja — kantor, ronda malam, atau kebutuhan jadwal bergilir mingguan lainnya. Tanpa akun, tanpa backend — semua data tersimpan langsung di perangkat kamu.</p>
       <div style="display:flex;gap:8px;margin-bottom:8px">

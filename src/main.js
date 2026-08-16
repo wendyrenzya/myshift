@@ -170,7 +170,7 @@ function renderLanding() {
   return `
     <div class="pl-landing">
       <div class="pl-landing-hero">
-        <div class="pl-landing-icon">${svgIcon('sparkles').replace('<svg ', '<svg style="width:34px;height:34px" ')}</div>
+        <div class="pl-landing-icon"><img src="/myshift_splash.png" alt="MyShift" style="width:100%;height:100%;object-fit:cover;border-radius:50%" /></div>
         <div class="pl-landing-title">MyShift</div>
         <div class="pl-landing-sub">Atur jadwal shift tim kamu — kantor, ronda malam, apa aja — tanpa ribet. Semua rapi dalam satu genggaman.</div>
         <button type="button" class="pl-landing-cta" id="pl-landing-start">
