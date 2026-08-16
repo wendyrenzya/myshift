@@ -196,7 +196,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   font-size: .7rem; font-weight: 700; border-radius: var(--r-sm); border: 1px solid var(--border);
 }
 .pl-byname-empty { color: var(--text-3); font-weight: 400; background: var(--bg); }
-.pl-byname-leave { color: #DC2626; background: #FEE2E2; border-color: #FCA5A5; }
+.pl-byname-leave { color: #6B7280; background: #F3F4F6; border-color: #D1D5DB; }
 
 .pl-byname-legend {
   display: flex; flex-wrap: wrap; gap: 7px 12px;
@@ -363,6 +363,19 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   cursor: pointer; font-family: inherit; transition: border-color var(--ease);
 }
 .pl-backup-btn:active { border-color: var(--border-dark); }
+.pl-backup-btn:disabled { opacity: .6; cursor: default; }
+.pl-backup-divider { height: 1px; background: var(--border); margin: 14px 0 12px; }
+.pl-drive-disconnect {
+  display: block; background: none; border: none; color: var(--text-3);
+  font-size: .74rem; font-weight: 600; cursor: pointer; padding: 8px 0 0; text-align: left;
+}
+.pl-drive-notice {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: #FFF8E1; border: 1px solid #FDE68A; border-radius: var(--r-lg);
+  padding: 10px 12px; margin-bottom: 10px; font-size: .74rem; color: #78350F; line-height: 1.5;
+}
+.pl-drive-notice svg { flex-shrink: 0; margin-top: 1px; color: #B45309; }
+.pl-drive-notice strong { font-weight: 700; }
 
 /* ── Animasi "pop" saat assign/undo personil di sheet shift ── */
 @keyframes pl-pop-anim {

@@ -1,6 +1,7 @@
 import './viewport.js'
 import { svgIcon } from './icons.js'
 import { getAllLocal, putLocal, deleteLocal } from './db.js'
+import { driveIsConfigured, driveSignIn, driveSignOut, driveUpload, driveDownload } from './drive.js'
 
 const USERS32 = svgIcon('usersRound').replace('<svg ', '<svg style="width:32px;height:32px" ')
 
@@ -36,6 +37,9 @@ let showShareSheet = false
 let shiftNoteText = ''       // catatan minggu yang lagi dibuka
 let showNotesSheet = false   // popup catatan
 let sharing = false          // lagi generate JPG/PDF (disable tombol biar gak double-tap)
+let driveConnected = false   // status sign-in Google Drive — session-only, gak persist antar buka app (lihat catatan di drive.js)
+let driveBusy = false        // lagi proses sign-in/backup/restore ke Drive (disable tombol biar gak double-tap)
+let driveStatusText = ''     // feedback terakhir, misal "Tersimpan ke Drive · 10:32"
 
 // ── Suara pop (disintesis, gak perlu file audio) ──
 let audioCtx = null
@@ -232,13 +236,33 @@ function renderScheduleHome() {
     <button type="button" class="pl-submit" id="pl-sched-add">+ Tambah Jadwal Shift</button>
 
     <div class="pl-backup-box">
-      <div class="pl-backup-title">${svgIcon('download').replace('<svg ', '<svg style="width:15px;height:15px" ')} Backup &amp; Import Data</div>
+      <div class="pl-backup-title">${svgIcon('download').replace('<svg ', '<svg style="width:15px;height:15px" ')} Backup &amp; Restore Data</div>
       <div class="pl-backup-hint">Data cuma tersimpan di perangkat ini. Backup rutin biar gak hilang kalau ganti HP atau cache browser kehapus.</div>
       <div class="pl-backup-actions">
         <button type="button" class="pl-backup-btn" id="pl-backup-export">${svgIcon('download').replace('<svg ', '<svg style="width:16px;height:16px" ')} Backup (JSON)</button>
-        <button type="button" class="pl-backup-btn" id="pl-backup-import">${svgIcon('upload').replace('<svg ', '<svg style="width:16px;height:16px" ')} Import</button>
+        <button type="button" class="pl-backup-btn" id="pl-backup-import">${svgIcon('upload').replace('<svg ', '<svg style="width:16px;height:16px" ')} Restore (JSON)</button>
       </div>
       <input type="file" id="pl-backup-file-input" accept="application/json,.json" style="display:none" />
+
+      <div class="pl-backup-divider"></div>
+      ${!driveIsConfigured() ? `
+        <div class="pl-backup-hint" style="margin-bottom:0">Backup ke Google Drive belum diaktifkan developer.</div>
+      ` : `
+        <div class="pl-drive-notice">
+          ${svgIcon('info').replace('<svg ', '<svg style="width:15px;height:15px" ')}
+          <span>Backup ini tersimpan di <strong>Drive kamu sendiri</strong>, bukan di server kami — kami nggak nyimpen atau bisa lihat isinya. Karena itu, kamu mungkin perlu <strong>login ulang tiap mau Backup/Restore</strong>, tergantung sesi Google di browser masih aktif atau nggak.</span>
+        </div>
+        ${!driveConnected ? `
+          <button type="button" class="pl-backup-btn" id="pl-drive-connect" style="width:100%" ${driveBusy ? 'disabled' : ''}>${svgIcon('cloud').replace('<svg ', '<svg style="width:16px;height:16px" ')} ${driveBusy ? 'Menghubungkan…' : 'Hubungkan Google Drive'}</button>
+        ` : `
+          <div class="pl-backup-actions">
+            <button type="button" class="pl-backup-btn" id="pl-drive-backup" ${driveBusy ? 'disabled' : ''}>${svgIcon('cloudUpload').replace('<svg ', '<svg style="width:16px;height:16px" ')} Backup ke Drive</button>
+            <button type="button" class="pl-backup-btn" id="pl-drive-restore" ${driveBusy ? 'disabled' : ''}>${svgIcon('cloudDownload').replace('<svg ', '<svg style="width:16px;height:16px" ')} Restore dari Drive</button>
+          </div>
+          ${driveStatusText ? `<div class="pl-backup-hint" style="margin-top:8px;margin-bottom:0">${esc(driveStatusText)}</div>` : ''}
+          <button type="button" class="pl-drive-disconnect" id="pl-drive-disconnect">Putuskan Google Drive</button>
+        `}
+      `}
     </div>
 
     ${showScheduleForm ? renderScheduleFormSheet() : ''}
@@ -263,7 +287,88 @@ function wireScheduleHome() {
     if (file) importBackupFile(file)
     e.target.value = ''
   })
+  const driveConnectBtn = app.querySelector('#pl-drive-connect')
+  if (driveConnectBtn) driveConnectBtn.addEventListener('click', driveConnect)
+  const driveBackupBtn = app.querySelector('#pl-drive-backup')
+  if (driveBackupBtn) driveBackupBtn.addEventListener('click', driveBackupNow)
+  const driveRestoreBtn = app.querySelector('#pl-drive-restore')
+  if (driveRestoreBtn) driveRestoreBtn.addEventListener('click', driveRestoreNow)
+  const driveDisconnectBtn = app.querySelector('#pl-drive-disconnect')
+  if (driveDisconnectBtn) driveDisconnectBtn.addEventListener('click', driveDisconnect)
   if (showScheduleForm) wireScheduleFormSheet()
+}
+
+async function driveConnect() {
+  if (driveBusy) return
+  driveBusy = true; render()
+  try {
+    await driveSignIn()
+    driveConnected = true
+    driveStatusText = 'Terhubung. Belum ada backup tersimpan di sesi ini.'
+  } catch (err) {
+    console.error(err)
+    alert(err.message || 'Gagal terhubung ke Google Drive.')
+  } finally {
+    driveBusy = false; render()
+  }
+}
+
+async function driveBackupNow() {
+  if (driveBusy) return
+  driveBusy = true; render()
+  try {
+    const [schedules, personnel, configs, assignments, notes, leaves] = await Promise.all(BACKUP_STORES.map(getAllLocal))
+    const backup = { app: 'myshift', version: 1, exported_at: new Date().toISOString(), schedules, personnel, configs, assignments, notes, leaves }
+    const modifiedTime = await driveUpload(JSON.stringify(backup, null, 2))
+    driveStatusText = `Tersimpan ke Drive · ${new Date(modifiedTime || Date.now()).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}`
+  } catch (err) {
+    console.error(err)
+    if (err.message && err.message.includes('Sesi Google Drive habis')) driveConnected = false
+    alert(err.message || 'Gagal backup ke Drive.')
+  } finally {
+    driveBusy = false; render()
+  }
+}
+
+async function driveRestoreNow() {
+  if (driveBusy) return
+  if (!confirm('Restore dari Drive akan MENGGANTI semua data yang ada sekarang (semua jadwal, personil, dan histori). Lanjutkan?')) return
+  driveBusy = true; render()
+  try {
+    const result = await driveDownload()
+    if (!result) {
+      alert('Belum ada backup MyShift di Drive akun ini.')
+      driveBusy = false; render()
+      return
+    }
+    const data = JSON.parse(result.text)
+    if (data.app !== 'myshift' || !Array.isArray(data.schedules)) throw new Error('File backup di Drive tidak valid.')
+    for (const name of BACKUP_STORES) {
+      const existing = await getAllLocal(name)
+      for (const rec of existing) await deleteLocal(name, rec.id)
+    }
+    const map = { shift_schedules: data.schedules, shift_personnel: data.personnel, shift_config: data.configs, shift_assignments: data.assignments, shift_notes: data.notes, shift_leaves: data.leaves }
+    for (const name of BACKUP_STORES) {
+      for (const rec of (map[name] || [])) await putLocal(name, rec)
+    }
+    activeScheduleId = null
+    await loadSchedules()
+    driveStatusText = `Direstore dari Drive · ${new Date(result.modifiedTime).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}`
+    alert('Restore dari Drive berhasil!')
+  } catch (err) {
+    console.error(err)
+    if (err.message && err.message.includes('Sesi Google Drive habis')) driveConnected = false
+    alert(err.message || 'Gagal restore dari Drive.')
+  } finally {
+    driveBusy = false; render()
+  }
+}
+
+function driveDisconnect() {
+  driveSignOut()
+  driveConnected = false
+  driveStatusText = ''
+  render()
 }
 
 function renderScheduleFormSheet() {
@@ -625,7 +730,7 @@ function renderShiftGridByName() {
     </div>
     <div class="pl-byname-legend">
       ${legendItems}
-      <span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:#DC2626"></span>L = Libur</span>
+      <span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:#9CA3AF"></span>L = Libur</span>
     </div>
   `
 }
