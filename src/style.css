@@ -528,3 +528,22 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   text-decoration: none; margin: 14px 0 4px; padding: 8px;
 }
 .pl-feature-request-link:active { color: var(--coral); }
+
+/* ── Range waktu spesifik per shift (opsional), di popup Kelola Personil & Shift ── */
+.pl-shift-label-block { margin-bottom: 10px; }
+.pl-shift-time-toggle {
+  display: block; background: none; border: none; color: var(--coral);
+  font-size: .72rem; font-weight: 600; cursor: pointer; padding: 5px 2px 0; text-align: left; font-family: inherit;
+}
+.pl-shift-time-range {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  background: var(--bg-input); border-radius: var(--r-lg); padding: 8px 10px; margin-top: 6px;
+}
+.pl-time-range-label { font-size: .68rem; color: var(--text-3); font-weight: 600; }
+.pl-time-box {
+  width: 34px; text-align: center; padding: 6px 0;
+  border: 1px solid var(--border); border-radius: var(--r-sm); font-size: .82rem; font-family: inherit;
+  background: var(--bg-card); color: var(--text);
+}
+.pl-time-sep { color: var(--text-3); font-weight: 700; }
+.pl-byname-legend-time { color: var(--text-3); font-weight: 400; }

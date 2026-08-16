@@ -44,6 +44,7 @@ let driveConnected = false   // status sign-in Google Drive — session-only, ga
 let driveBusy = false        // lagi proses sign-in/backup/restore ke Drive (disable tombol biar gak double-tap)
 let driveStatusText = ''     // feedback terakhir, misal "Tersimpan ke Drive · 10:32"
 let confirmDialog = null     // { title, message, danger, resolve } — pengganti window.confirm() bawaan browser
+let openTimeRangeIndices = new Set()  // index shift yang lagi kebuka input range waktunya
 
 // ── Suara pop (disintesis, gak perlu file audio) ──
 let audioCtx = null
@@ -528,9 +529,26 @@ async function importBackupFile(file) {
 // ── KELOLA PERSONIL & SHIFT (dalam satu jadwal) ──
 // ══════════════════════════════════════════════════════════
 
+function renderTimeRangeBoxes(i, t) {
+  t = t || {}
+  return `
+    <div class="pl-shift-time-range">
+      <span class="pl-time-range-label">Mulai</span>
+      <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="startH" value="${esc(t.startH || '')}" placeholder="00" />
+      <span class="pl-time-sep">:</span>
+      <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="startM" value="${esc(t.startM || '')}" placeholder="00" />
+      <span class="pl-time-range-label">Sampai</span>
+      <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="endH" value="${esc(t.endH || '')}" placeholder="00" />
+      <span class="pl-time-sep">:</span>
+      <input type="text" inputmode="numeric" maxlength="2" class="pl-time-box" data-i="${i}" data-field="endM" value="${esc(t.endM || '')}" placeholder="00" />
+    </div>
+  `
+}
+
 function renderShiftSettingsSheet(onboarding) {
-  const n = shiftConfig ? shiftConfig.shifts_per_day : 1
+  const n = shiftConfig ? shiftConfig.shifts_per_day : 2
   const labels = shiftConfig ? shiftConfig.shift_labels : []
+  const times = shiftConfig ? (shiftConfig.shift_times || []) : []
   return `
     <div class="pl-overlay pl-overlay-center" id="pl-shift-settings-overlay">
       <div class="pl-sheet pl-sheet-center">
@@ -564,7 +582,18 @@ function renderShiftSettingsSheet(onboarding) {
           <div class="pl-proj-detail-label" style="margin-top:16px">3. Nama tiap shift</div>
           <div class="pl-sheet-hint">Ganti label default ("Shift 1", "Shift 2", dst) sesuai kebutuhan, misalnya Pagi / Siang / Malam.</div>
           <div class="pl-shift-labels">
-            ${labels.map((l, i) => `<input type="text" class="pl-shift-label-input" data-i="${i}" value="${esc(l)}" placeholder="Nama shift ${i + 1}…" />`).join('')}
+            ${labels.map((l, i) => {
+              const t = times[i]
+              const formatted = formatShiftTime(t)
+              const isOpen = openTimeRangeIndices.has(i)
+              return `
+                <div class="pl-shift-label-block">
+                  <input type="text" class="pl-shift-label-input" data-i="${i}" value="${esc(l)}" placeholder="Nama shift ${i + 1}…" />
+                  <button type="button" class="pl-shift-time-toggle" data-i="${i}">${formatted ? `⏱ ${esc(formatted)} (ubah)` : '+ tambahkan range waktu spesifik (opsional)'}</button>
+                  ${isOpen ? renderTimeRangeBoxes(i, t) : ''}
+                </div>
+              `
+            }).join('')}
           </div>
         ` : ''}
         <button type="button" class="pl-submit" id="pl-shift-settings-done" style="margin-top:16px">Simpan</button>
@@ -576,7 +605,7 @@ function renderShiftSettingsSheet(onboarding) {
 function wireShiftSettingsSheet() {
   const overlay = app.querySelector('#pl-shift-settings-overlay')
   overlay.addEventListener('click', (e) => { if (e.target === overlay) { showShiftSettings = false; render() } })
-  app.querySelector('#pl-shift-settings-done').addEventListener('click', () => { showShiftSettings = false; render() })
+  app.querySelector('#pl-shift-settings-done').addEventListener('click', async () => { if (!shiftConfig) await updateShiftCount(2); showShiftSettings = false; render() })
   const addPerson = async () => {
     const input = app.querySelector('#pl-person-input')
     const v = input.value.trim()
@@ -602,6 +631,27 @@ function wireShiftSettingsSheet() {
     inp.addEventListener('change', e => {
       updateShiftLabel(Number(inp.dataset.i), e.target.value.trim())
     })
+  })
+  app.querySelectorAll('.pl-shift-time-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.i)
+      if (openTimeRangeIndices.has(i)) openTimeRangeIndices.delete(i)
+      else openTimeRangeIndices.add(i)
+      render()
+    })
+  })
+  app.querySelectorAll('.pl-time-box').forEach(inp => {
+    inp.addEventListener('focus', e => e.target.select())
+    inp.addEventListener('input', e => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2)
+      if (e.target.value.length === 2) {
+        const i = e.target.dataset.i
+        const boxes = Array.from(app.querySelectorAll(`.pl-time-box[data-i="${i}"]`))
+        const idx = boxes.indexOf(e.target)
+        if (idx > -1 && idx < boxes.length - 1) boxes[idx + 1].focus()
+      }
+    })
+    inp.addEventListener('blur', e => { handleTimeBoxBlur(e.target) })
   })
 }
 
@@ -629,9 +679,47 @@ async function updateShiftCount(newCount) {
   newCount = Math.max(1, Math.min(8, newCount))
   const oldLabels = shiftConfig ? shiftConfig.shift_labels : []
   const newLabels = Array.from({ length: newCount }, (_, i) => oldLabels[i] || `Shift ${i + 1}`)
-  shiftConfig = { id: activeScheduleId, schedule_id: activeScheduleId, shifts_per_day: newCount, shift_labels: newLabels }
+  const oldTimes = shiftConfig && shiftConfig.shift_times ? shiftConfig.shift_times : []
+  const newTimes = Array.from({ length: newCount }, (_, i) => oldTimes[i] || null)
+  shiftConfig = { id: activeScheduleId, schedule_id: activeScheduleId, shifts_per_day: newCount, shift_labels: newLabels, shift_times: newTimes }
   await putLocal('shift_config', shiftConfig)
   render()
+}
+
+// Format tampilan "HH:MM – HH:MM" — null kalau belum semua 4 kotak keisi (opsional, gak wajib diisi)
+function formatShiftTime(t) {
+  if (!t || !t.startH || !t.startM || !t.endH || !t.endM) return null
+  return `${t.startH}:${t.startM} – ${t.endH}:${t.endM}`
+}
+
+async function updateShiftTimeField(index, field, rawValue) {
+  const times = shiftConfig.shift_times ? [...shiftConfig.shift_times] : []
+  while (times.length < shiftConfig.shifts_per_day) times.push(null)
+  const cur = times[index] || {}
+  const next = { ...cur, [field]: rawValue }
+  const allEmpty = !next.startH && !next.startM && !next.endH && !next.endM
+  times[index] = allEmpty ? null : next
+  shiftConfig = { ...shiftConfig, shift_times: times }
+  await putLocal('shift_config', shiftConfig)
+  render()
+}
+
+// Validasi 1 kotak angka (jam 00-23 atau menit 00-59), format 24 jam.
+// 1 digit -> otomatis ditambah 0 di depan. Kalau di luar rentang wajar -> munculin warning, reset ke 00.
+async function handleTimeBoxBlur(input) {
+  const i = Number(input.dataset.i)
+  const field = input.dataset.field
+  const isHour = field === 'startH' || field === 'endH'
+  const max = isHour ? 23 : 59
+  let raw = input.value.replace(/\D/g, '')
+  if (raw === '') { await updateShiftTimeField(i, field, ''); return }
+  if (raw.length === 1) raw = '0' + raw
+  const num = parseInt(raw, 10)
+  if (num > max) {
+    await customAlert(`${isHour ? 'Jam' : 'Menit'} harus antara 00–${max} (format 24 jam).`, { title: isHour ? 'Jam tidak valid' : 'Menit tidak valid' })
+    raw = '00'
+  }
+  await updateShiftTimeField(i, field, raw)
 }
 
 async function updateShiftLabel(index, value) {
@@ -765,10 +853,12 @@ function renderShiftGridByName() {
       </svg>
     </th>
   `).join('')
+  const times = shiftConfig.shift_times || []
   const legendItems = labels.slice(0, n).map((l, si) => {
     const label = l || `Shift ${si + 1}`
     const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
-    return `<span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:${color}"></span>${esc(codes[si])} = ${esc(label)}</span>`
+    const t = formatShiftTime(times[si])
+    return `<span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:${color}"></span>${esc(codes[si])} = ${esc(label)}${t ? ` <span class="pl-byname-legend-time">(${esc(t)})</span>` : ''}</span>`
   }).join('')
   return `
     <div class="pl-shift-byname-wrap">
@@ -968,10 +1058,12 @@ function buildExportBodyMatrix() {
     }
     rowsHtml += `<tr><td style="padding:8px 10px;font-size:12.5px;font-weight:600;color:#1A1A1A;white-space:nowrap;border:1px solid #EEEEEC">${esc(p.name)}</td>${cellsHtml}</tr>`
   }
+  const times = shiftConfig.shift_times || []
   const legendItems = labels.slice(0, n).map((l, si) => {
     const label = l || `Shift ${si + 1}`
     const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
-    return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6B6B6B;margin-right:12px"><span style="width:9px;height:9px;border-radius:3px;background:${color};display:inline-block"></span>${esc(codes[si])} = ${esc(label)}</span>`
+    const t = formatShiftTime(times[si])
+    return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6B6B6B;margin-right:12px"><span style="width:9px;height:9px;border-radius:3px;background:${color};display:inline-block"></span>${esc(codes[si])} = ${esc(label)}${t ? ` (${esc(t)})` : ''}</span>`
   }).join('')
   return `
     <table style="border-collapse:collapse;width:100%;margin-bottom:10px">
@@ -1294,20 +1386,28 @@ function esc(s) {
 // Pakai: if (!(await customConfirm('Yakin?'))) return
 function customConfirm(message, { title = 'Konfirmasi', danger = false, okLabel } = {}) {
   return new Promise((resolve) => {
-    confirmDialog = { title, message, danger, okLabel: okLabel || (danger ? 'Hapus' : 'Ya, Lanjut'), resolve }
+    confirmDialog = { title, message, danger, okLabel: okLabel || (danger ? 'Hapus' : 'Ya, Lanjut'), singleButton: false, resolve }
+    render()
+  })
+}
+
+// Pengganti window.alert() — cuma satu tombol Oke, resolve begitu ditekan.
+function customAlert(message, { title = 'Perhatian', okLabel = 'Oke' } = {}) {
+  return new Promise((resolve) => {
+    confirmDialog = { title, message, danger: false, okLabel, singleButton: true, resolve }
     render()
   })
 }
 
 function renderConfirmDialog() {
-  const { title, message, danger, okLabel } = confirmDialog
+  const { title, message, danger, okLabel, singleButton } = confirmDialog
   return `
     <div class="pl-overlay pl-overlay-center" id="pl-confirm-overlay">
       <div class="pl-sheet pl-sheet-center pl-confirm-sheet">
         <div class="pl-sheet-title">${esc(title)}</div>
         <div class="pl-confirm-message">${esc(message)}</div>
         <div class="pl-confirm-actions">
-          <button type="button" class="pl-confirm-cancel" id="pl-confirm-cancel">Batal</button>
+          ${singleButton ? '' : '<button type="button" class="pl-confirm-cancel" id="pl-confirm-cancel">Batal</button>'}
           <button type="button" class="pl-confirm-ok ${danger ? 'danger' : ''}" id="pl-confirm-ok">${esc(okLabel)}</button>
         </div>
       </div>
@@ -1323,9 +1423,10 @@ function wireConfirmDialog() {
     resolve(result)
     render()
   }
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(false) })
-  app.querySelector('#pl-confirm-cancel').addEventListener('click', () => finish(false))
-  app.querySelector('#pl-confirm-ok').addEventListener('click', () => finish(true))
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(confirmDialog.singleButton ? undefined : false) })
+  const cancelBtn = app.querySelector('#pl-confirm-cancel')
+  if (cancelBtn) cancelBtn.addEventListener('click', () => finish(false))
+  app.querySelector('#pl-confirm-ok').addEventListener('click', () => finish(confirmDialog.singleButton ? undefined : true))
 }
 
 // Period card jadi floating/compact pas discroll ke bawah — listener sekali aja (bukan tiap render),
