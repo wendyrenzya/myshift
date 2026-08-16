@@ -145,6 +145,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-shift-cell {
   flex: 1; min-width: 84px; background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--r-lg); padding: 8px; cursor: pointer; transition: border-color var(--ease);
+  scroll-margin-top: 64px;
 }
 .pl-shift-cell:hover { border-color: var(--border-dark); }
 .pl-shift-cell-label { font-size: .64rem; color: var(--text-3); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .02em; }
@@ -164,6 +165,7 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 10px 0; border-bottom: 1px solid var(--border);
   cursor: pointer; transition: background var(--ease);
+  scroll-margin-top: 64px;
 }
 .pl-shift-row:last-child { border-bottom: none; }
 .pl-shift-row:active { background: var(--bg-input); }
@@ -233,6 +235,8 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   display: flex; align-items: flex-end; justify-content: center;
   z-index: 50; height: var(--viewport-height); max-height: 100%; overflow-y: auto;
 }
+.pl-overlay-center { align-items: center; padding: 16px; }
+.pl-sheet-center { border-radius: var(--r-2xl); max-height: calc(var(--viewport-height) - 32px); }
 .pl-sheet {
   background: var(--bg-card); width: 100%; max-width: 480px;
   border-radius: 20px 20px 0 0; padding: 18px 16px calc(env(safe-area-inset-bottom) + 16px);
@@ -306,7 +310,12 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 
 /* ── Header jadwal (di dalam detail satu jadwal) ── */
 .pl-sched-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; min-height: 34px; }
-.pl-sched-back { background: none; border: none; color: var(--text-3); font-size: .8rem; font-weight: 600; cursor: pointer; padding: 4px 0; flex-shrink: 0; position: relative; z-index: 1; }
+.pl-sched-back {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text-2);
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; position: relative; z-index: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.pl-sched-back:active { border-color: var(--border-dark); }
 .pl-sched-header-name {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   max-width: calc(100% - 150px);
@@ -320,15 +329,25 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   position: relative; z-index: 1;
 }
 .pl-sched-settings-btn:active { border-color: var(--border-dark); }
-.pl-gear-spin { animation: pl-gear-rotate 2s linear infinite; }
-@keyframes pl-gear-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.pl-gear-spin { animation: pl-gear-rotate 3s ease-in-out infinite; }
+@keyframes pl-gear-rotate {
+  0% { transform: rotate(0deg); }
+  33.33% { transform: rotate(360deg); }
+  100% { transform: rotate(360deg); }
+}
 
 /* ── Kartu PERIODE (navigator minggu) ── */
 .pl-period-card {
+  position: sticky; top: 8px; z-index: 15;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   background: var(--bg-card); border-radius: var(--r-xl); box-shadow: var(--shadow-sm);
   padding: 14px 10px; margin-bottom: 12px;
+  transition: padding var(--ease-out), box-shadow var(--ease-out);
 }
+.pl-period-card.floating { padding: 7px 8px; box-shadow: var(--shadow-md); }
+.pl-period-card.floating .pl-period-label { display: none; }
+.pl-period-card.floating .pl-period-range { font-size: .78rem; transition: font-size var(--ease-out); }
+.pl-period-card.floating .pl-period-nav-btn { width: 30px; height: 30px; font-size: 1rem; }
 .pl-period-nav-btn {
   flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
   background: var(--bg-input); border: none; color: var(--text-2);

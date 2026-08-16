@@ -21,6 +21,7 @@ import {
   CloudDownload,
   Info,
   Settings,
+  Home,
 } from 'lucide'
 
 const ICONS = {
@@ -44,6 +45,7 @@ const ICONS = {
   cloudDownload: CloudDownload,
   info: Info,
   settings: Settings,
+  home: Home,
 }
 
 export function svgIcon(id) {

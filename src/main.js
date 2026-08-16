@@ -490,8 +490,8 @@ function renderShiftSettingsSheet(onboarding) {
   const n = shiftConfig ? shiftConfig.shifts_per_day : 1
   const labels = shiftConfig ? shiftConfig.shift_labels : []
   return `
-    <div class="pl-overlay" id="pl-shift-settings-overlay">
-      <div class="pl-sheet">
+    <div class="pl-overlay pl-overlay-center" id="pl-shift-settings-overlay">
+      <div class="pl-sheet pl-sheet-center">
         <div class="pl-sheet-title">Kelola Personil & Shift</div>
         ${onboarding ? `
           <div class="pl-onboard-intro">
@@ -1090,7 +1090,7 @@ function renderScheduleDetail() {
   const sched = shiftSchedules.find(s => s.id === activeScheduleId)
   return `
     <div class="pl-sched-header">
-      <button type="button" class="pl-sched-back" id="pl-sched-back">&lsaquo; Semua Jadwal</button>
+      <button type="button" class="pl-sched-back" id="pl-sched-back" aria-label="Semua Jadwal" title="Semua Jadwal">${svgIcon('home').replace('<svg ', '<svg style="width:17px;height:17px" ')}</button>
       <div class="pl-sched-header-name">${esc(sched ? sched.name : '')}</div>
       <button type="button" id="pl-shift-settings-toggle" class="pl-sched-settings-btn" aria-label="Kelola Personil & Shift" title="Kelola Personil & Shift">${svgIcon('settings').replace('<svg ', '<svg class="pl-gear-spin" style="width:17px;height:17px" ')}</button>
     </div>
@@ -1128,6 +1128,7 @@ function renderScheduleDetail() {
       <button type="button" id="pl-share-btn" class="pl-fab pl-share-fab" aria-label="Bagikan Jadwal" title="Bagikan Jadwal" ${sharing ? 'disabled' : ''}>
         ${svgIcon('share').replace('<svg ', '<svg style="width:18px;height:18px" ')}
       </button>
+      ${activeShiftCell ? '<div style="height:60vh"></div>' : ''}
     `}
     ${showShiftSettings ? renderShiftSettingsSheet(!ready) : ''}
     ${activeShiftCell ? renderShiftSheet() : ''}
@@ -1187,6 +1188,15 @@ function render() {
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }
+
+// Period card jadi floating/compact pas discroll ke bawah — listener sekali aja (bukan tiap render),
+// query ulang tiap event scroll biar tetap kerja walau DOM-nya keganti tiap render() (no-op kalau lagi gak di halaman ini)
+window.addEventListener('scroll', () => {
+  const card = document.querySelector('.pl-period-card')
+  if (!card) return
+  if (window.scrollY > 40) card.classList.add('floating')
+  else card.classList.remove('floating')
+}, { passive: true })
 
 // ── Boot ──
 ;(async () => {
