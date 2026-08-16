@@ -43,6 +43,7 @@ let sharing = false          // lagi generate JPG/PDF (disable tombol biar gak d
 let driveConnected = false   // status sign-in Google Drive — session-only, gak persist antar buka app (lihat catatan di drive.js)
 let driveBusy = false        // lagi proses sign-in/backup/restore ke Drive (disable tombol biar gak double-tap)
 let driveStatusText = ''     // feedback terakhir, misal "Tersimpan ke Drive · 10:32"
+let confirmDialog = null     // { title, message, danger, resolve } — pengganti window.confirm() bawaan browser
 
 // ── Suara pop (disintesis, gak perlu file audio) ──
 let audioCtx = null
@@ -379,7 +380,7 @@ async function driveBackupNow() {
 
 async function driveRestoreNow() {
   if (driveBusy) return
-  if (!confirm('Restore dari Drive akan MENGGANTI semua data yang ada sekarang (semua jadwal, personil, dan histori). Lanjutkan?')) return
+  if (!(await customConfirm('Restore dari Drive akan MENGGANTI semua data yang ada sekarang (semua jadwal, personil, dan histori). Lanjutkan?', { danger: true, okLabel: 'Ya, Timpa' }))) return
   driveBusy = true; render()
   try {
     const result = await driveDownload()
@@ -420,8 +421,8 @@ function driveDisconnect() {
 
 function renderScheduleFormSheet() {
   return `
-    <div class="pl-overlay" id="pl-sched-form-overlay">
-      <div class="pl-sheet">
+    <div class="pl-overlay pl-overlay-center" id="pl-sched-form-overlay">
+      <div class="pl-sheet pl-sheet-center">
         <div class="pl-sheet-title">Jadwal Shift Baru</div>
         <div class="pl-sheet-hint">Nama jadwal, misalnya "Shift Kantor" atau "Shift Ronda Malam".</div>
         <input id="pl-sched-name-input" type="text" placeholder="Nama jadwal…" autocomplete="off" />
@@ -456,7 +457,7 @@ async function createSchedule(name) {
 async function deleteSchedule(id) {
   const s = shiftSchedules.find(x => x.id === id)
   const name = s ? s.name : 'jadwal ini'
-  if (!confirm(`Hapus jadwal "${name}"? Semua personil dan jadwal mingguan di dalamnya juga ikut terhapus.`)) return
+  if (!(await customConfirm(`Hapus jadwal "${name}"? Semua personil dan jadwal mingguan di dalamnya juga ikut terhapus.`, { danger: true }))) return
   await deleteLocal('shift_schedules', id)
   await deleteLocal('shift_config', id)
   const allPersonnel = await getAllLocal('shift_personnel')
@@ -508,7 +509,7 @@ async function importBackupFile(file) {
     alert('File tidak valid. Pastikan file JSON hasil backup MyShift.')
     return
   }
-  if (!confirm('Import akan MENGGANTI semua data yang ada sekarang (semua jadwal, personil, dan histori) dengan isi file ini. Lanjutkan?')) return
+  if (!(await customConfirm('Import akan MENGGANTI semua data yang ada sekarang (semua jadwal, personil, dan histori) dengan isi file ini. Lanjutkan?', { danger: true, okLabel: 'Ya, Timpa' }))) return
   for (const name of BACKUP_STORES) {
     const existing = await getAllLocal(name)
     for (const rec of existing) await deleteLocal(name, rec.id)
@@ -566,7 +567,7 @@ function renderShiftSettingsSheet(onboarding) {
             ${labels.map((l, i) => `<input type="text" class="pl-shift-label-input" data-i="${i}" value="${esc(l)}" placeholder="Nama shift ${i + 1}…" />`).join('')}
           </div>
         ` : ''}
-        <button type="button" class="pl-submit" id="pl-shift-settings-done" style="margin-top:16px">Selesai</button>
+        <button type="button" class="pl-submit" id="pl-shift-settings-done" style="margin-top:16px">Simpan</button>
       </div>
     </div>
   `
@@ -585,10 +586,10 @@ function wireShiftSettingsSheet() {
   app.querySelector('#pl-person-add').addEventListener('click', addPerson)
   app.querySelector('#pl-person-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addPerson() } })
   app.querySelectorAll('.pl-person-del').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const p = shiftPersonnel.find(x => x.id === btn.dataset.id)
       const name = p ? p.name : 'personil ini'
-      if (confirm(`Hapus ${name} dari daftar personil? Jadwal yang sudah diisi untuk orang ini juga akan dikosongkan.`)) {
+      if (await customConfirm(`Hapus ${name} dari daftar personil? Jadwal yang sudah diisi untuk orang ini juga akan dikosongkan.`, { danger: true })) {
         deleteShiftPersonnel(btn.dataset.id)
       }
     })
@@ -597,6 +598,7 @@ function wireShiftSettingsSheet() {
     updateShiftCount(Number(e.target.value) || 1)
   })
   app.querySelectorAll('.pl-shift-label-input').forEach(inp => {
+    inp.addEventListener('focus', e => e.target.select())
     inp.addEventListener('change', e => {
       updateShiftLabel(Number(inp.dataset.i), e.target.value.trim())
     })
@@ -852,7 +854,7 @@ async function duplicatePreviousWeek() {
   const prevAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId && a.week_start === prevWeekStart && (a.personnel_ids || []).length > 0)
   if (prevAssignments.length === 0) { alert('Minggu sebelumnya belum ada jadwal yang bisa diduplikat.'); return }
   const hasCurrent = shiftAssignments.some(a => (a.personnel_ids || []).length > 0)
-  if (hasCurrent && !confirm('Jadwal minggu ini sudah ada isinya. Timpa dengan jadwal minggu lalu?')) return
+  if (hasCurrent && !(await customConfirm('Jadwal minggu ini sudah ada isinya. Timpa dengan jadwal minggu lalu?', { okLabel: 'Ya, Timpa' }))) return
   const currentAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId && a.week_start === shiftWeekStart)
   for (const a of currentAssignments) await deleteLocal('shift_assignments', a.id)
   for (const pa of prevAssignments) {
@@ -1245,9 +1247,9 @@ function wireScheduleDetail() {
     })
     app.querySelector('#pl-duplicate-btn').addEventListener('click', duplicatePreviousWeek)
     app.querySelector('#pl-notes-btn').addEventListener('click', () => { showNotesSheet = true; render() })
-    app.querySelector('#pl-share-btn').addEventListener('click', () => {
+    app.querySelector('#pl-share-btn').addEventListener('click', async () => {
       const hasAny = shiftAssignments.some(a => a.week_start === shiftWeekStart && (a.personnel_ids || []).length > 0)
-      if (!hasAny && !confirm('Jadwal minggu ini masih kosong. Tetap lanjut bagikan?')) return
+      if (!hasAny && !(await customConfirm('Jadwal minggu ini masih kosong. Tetap lanjut bagikan?', { okLabel: 'Ya, Lanjut' }))) return
       showShareSheet = true; render()
     })
     app.querySelector('#pl-tab-old').addEventListener('click', () => { showByNameView = false; gridViewMode = 'old'; render() })
@@ -1270,8 +1272,9 @@ function render() {
       wireLanding()
       return
     }
-    app.innerHTML = activeScheduleId ? renderScheduleDetail() : renderScheduleHome()
+    app.innerHTML = (activeScheduleId ? renderScheduleDetail() : renderScheduleHome()) + (confirmDialog ? renderConfirmDialog() : '')
     if (activeScheduleId) wireScheduleDetail(); else wireScheduleHome()
+    if (confirmDialog) wireConfirmDialog()
   }
   // View Transitions API: kalau ada perubahan layout (misal tombol "Minggu ini" muncul/hilang,
   // konten di bawahnya jadi ke-push), browser animasiin bedanya secara otomatis — smooth,
@@ -1285,6 +1288,44 @@ function render() {
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+// Pengganti window.confirm() bawaan browser — popup custom senada tema app.
+// Pakai: if (!(await customConfirm('Yakin?'))) return
+function customConfirm(message, { title = 'Konfirmasi', danger = false, okLabel } = {}) {
+  return new Promise((resolve) => {
+    confirmDialog = { title, message, danger, okLabel: okLabel || (danger ? 'Hapus' : 'Ya, Lanjut'), resolve }
+    render()
+  })
+}
+
+function renderConfirmDialog() {
+  const { title, message, danger, okLabel } = confirmDialog
+  return `
+    <div class="pl-overlay pl-overlay-center" id="pl-confirm-overlay">
+      <div class="pl-sheet pl-sheet-center pl-confirm-sheet">
+        <div class="pl-sheet-title">${esc(title)}</div>
+        <div class="pl-confirm-message">${esc(message)}</div>
+        <div class="pl-confirm-actions">
+          <button type="button" class="pl-confirm-cancel" id="pl-confirm-cancel">Batal</button>
+          <button type="button" class="pl-confirm-ok ${danger ? 'danger' : ''}" id="pl-confirm-ok">${esc(okLabel)}</button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+function wireConfirmDialog() {
+  const overlay = app.querySelector('#pl-confirm-overlay')
+  const finish = (result) => {
+    const resolve = confirmDialog.resolve
+    confirmDialog = null
+    resolve(result)
+    render()
+  }
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(false) })
+  app.querySelector('#pl-confirm-cancel').addEventListener('click', () => finish(false))
+  app.querySelector('#pl-confirm-ok').addEventListener('click', () => finish(true))
 }
 
 // Period card jadi floating/compact pas discroll ke bawah — listener sekali aja (bukan tiap render),

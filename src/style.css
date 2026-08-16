@@ -243,6 +243,21 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   max-height: calc(var(--viewport-height) * .4); overflow-y: auto;
 }
 .pl-sheet-center { border-radius: var(--r-2xl); max-height: calc(var(--viewport-height) - 32px); }
+
+.pl-confirm-sheet { max-width: 340px; }
+.pl-confirm-message { font-size: .85rem; color: var(--text-2); line-height: 1.55; margin-bottom: 18px; }
+.pl-confirm-actions { display: flex; gap: 10px; }
+.pl-confirm-cancel {
+  flex: 1; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-2);
+  border-radius: var(--r-btn); padding: 10px; font-size: .85rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.pl-confirm-cancel:active { border-color: var(--border-dark); }
+.pl-confirm-ok {
+  flex: 1; background: var(--coral); border: none; color: var(--white);
+  border-radius: var(--r-btn); padding: 10px; font-size: .85rem; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.pl-confirm-ok.danger { background: #DC2626; }
+.pl-confirm-ok:active, .pl-confirm-cancel:active { transform: var(--active-press); }
 .pl-sheet-title { font-size: .92rem; font-weight: 700; margin-bottom: 14px; }
 .pl-sheet-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .pl-sheet-person-row { display: flex; align-items: center; gap: 8px; }
