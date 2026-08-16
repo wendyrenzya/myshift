@@ -166,21 +166,52 @@ function findOtherShiftSameDay(pid, day, currentShiftIdx) {
 // ── LANDING PAGE (splash pertama + FAQ) ──
 // ══════════════════════════════════════════════════════════
 
+// Logo splash: pecah jadi grid 4x4 "kotak kecil" yang masing-masing nunjukin potongan gambar,
+// tiap kotak mulai dari posisi acak lalu menyatu ke tempatnya masing-masing (efek assemble/mosaic)
+function renderSplashTiles() {
+  let html = ''
+  for (let y = 0; y < 4; y++) {
+    for (let x = 0; x < 4; x++) {
+      const dx = Math.round((Math.random() * 2 - 1) * 70)
+      const dy = Math.round((Math.random() * 2 - 1) * 70)
+      const rot = Math.round((Math.random() * 2 - 1) * 50)
+      const delay = Math.round((x + y * 4) * 22 + Math.random() * 40)
+      html += `<span class="pl-splash-tile" style="left:${x * 25}%;top:${y * 25}%;background-position:${x * 33.333}% ${y * 33.333}%;--dx:${dx}px;--dy:${dy}px;--rot:${rot}deg;animation-delay:${delay}ms"></span>`
+    }
+  }
+  return html
+}
+
 function renderLanding() {
   return `
     <div class="pl-landing">
       <div class="pl-landing-hero">
-        <div class="pl-landing-icon"><img src="/myshift_splash.png" alt="MyShift" style="width:100%;height:100%;object-fit:cover;border-radius:50%" /></div>
+        <div class="pl-landing-icon">${renderSplashTiles()}</div>
         <div class="pl-landing-title">MyShift</div>
-        <div class="pl-landing-sub">Atur jadwal shift tim kamu — kantor, ronda malam, apa aja — tanpa ribet. Semua rapi dalam satu genggaman.</div>
+        <div class="pl-landing-sub">Susun shift tanpa perlu buka spreadsheet — cukup klik nama. Tanpa ribet ngetik, tanpa bikin tabel, tanpa copy-paste, dan langsung bagikan sebagai JPG atau PDF.</div>
         <button type="button" class="pl-landing-cta" id="pl-landing-start">
-          Mulai ${svgIcon('chevronDown').replace('<svg ', '<svg style="width:16px;height:16px;transform:rotate(-90deg)" ')}
+          <span>Mulai Sekarang</span>
+          ${svgIcon('chevronDown').replace('<svg ', '<svg style="width:15px;height:15px;transform:rotate(-90deg)" ')}
         </button>
       </div>
       <div class="pl-landing-features">
-        <div class="pl-feature-card"><span class="pl-feature-icon-badge">${svgIcon('usersRound').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span><div class="pl-feature-card-title">Banyak Jadwal</div></div>
-        <div class="pl-feature-card"><span class="pl-feature-icon-badge">${svgIcon('share').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span><div class="pl-feature-card-title">Bagikan Sekali Tap</div></div>
-        <div class="pl-feature-card"><span class="pl-feature-icon-badge">${svgIcon('download').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span><div class="pl-feature-card-title">Backup Kapan Aja</div></div>
+        <div class="pl-feature-card">
+          <span class="pl-feature-tag">Unlimited</span>
+          <span class="pl-feature-icon-badge" style="background:#DCFCE7;color:#16A34A">${svgIcon('usersRound').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Bikin Banyak Jadwal</div>
+        </div>
+        <div class="pl-feature-card">
+          <span class="pl-feature-icon-badge" style="background:#FFE4DC;color:#EA580C">${svgIcon('share').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Bagikan Sekali Tap</div>
+        </div>
+        <div class="pl-feature-card">
+          <span class="pl-feature-icon-badge" style="background:#DBEAFE;color:#2563EB">${svgIcon('download').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Backup Kapan Aja</div>
+        </div>
+        <div class="pl-feature-card">
+          <span class="pl-feature-icon-badge" style="background:#F3E8FF;color:#9333EA">${svgIcon('gift').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Gratis Tanpa Langganan</div>
+        </div>
       </div>
       <div class="pl-faq">
         <div class="pl-faq-title">Pertanyaan Umum</div>
@@ -188,7 +219,7 @@ function renderLanding() {
           <div class="pl-faq-item">
             <button type="button" class="pl-faq-q ${openFaqIndex === i ? 'open' : ''}" data-i="${i}">
               <span>${esc(item.q)}</span>
-              ${svgIcon('chevronDown').replace('<svg ', '<svg style="width:16px;height:16px" ')}
+              ${svgIcon(openFaqIndex === i ? 'minus' : 'plus').replace('<svg ', '<svg style="width:16px;height:16px" ')}
             </button>
             ${openFaqIndex === i ? `<div class="pl-faq-a">${esc(item.a)}</div>` : ''}
           </div>

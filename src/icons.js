@@ -24,6 +24,9 @@ import {
   Home,
   Trash2,
   ExternalLink,
+  Gift,
+  Plus,
+  Minus,
 } from 'lucide'
 
 const ICONS = {
@@ -50,6 +53,9 @@ const ICONS = {
   home: Home,
   trash: Trash2,
   externalLink: ExternalLink,
+  gift: Gift,
+  plus: Plus,
+  minus: Minus,
 }
 
 export function svgIcon(id) {
