@@ -228,6 +228,9 @@ function renderLanding() {
       <div style="text-align:center;padding:16px 0 8px">
         <a href="/privacy" target="_blank" rel="noopener" style="color:#6B6B6B;font-size:12.5px;font-weight:600">Kebijakan Privasi</a>
       </div>
+      <div style="text-align:center;padding:0 0 8px;font-size:12.5px;color:#6B6B6B">
+        Mau support kami? <a href="https://renzya.my.id" target="_blank" rel="noopener" style="color:var(--coral);font-weight:700">Beli ebook</a>
+      </div>
     </div>
   `
 }
