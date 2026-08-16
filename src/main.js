@@ -252,7 +252,7 @@ function wireLanding() {
 
 function renderScheduleHome() {
   return `
-    <div class="pl-sched-logo"><img src="/Full.png" alt="MyShift" /></div>
+    <div class="pl-sched-logo"><span class="pl-sched-logo-frame"><img src="/Full.png" alt="MyShift" /></span></div>
     <div class="pl-sched-intro">
       <div class="pl-sched-intro-title">List Jadwal</div>
       <div class="pl-sched-intro-sub">Tiap jadwal punya personil & jadwal mingguan sendiri-sendiri.</div>
