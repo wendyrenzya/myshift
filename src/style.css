@@ -237,12 +237,12 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   z-index: 50; height: var(--viewport-height); max-height: 100%; overflow-y: auto;
 }
 .pl-overlay-center { align-items: center; padding: 16px; }
-.pl-sheet-center { border-radius: var(--r-2xl); max-height: calc(var(--viewport-height) - 32px); }
 .pl-sheet {
   background: var(--bg-card); width: 100%; max-width: 480px;
   border-radius: 20px 20px 0 0; padding: 18px 16px calc(env(safe-area-inset-bottom) + 16px);
   max-height: calc(var(--viewport-height) * .4); overflow-y: auto;
 }
+.pl-sheet-center { border-radius: var(--r-2xl); max-height: calc(var(--viewport-height) - 32px); }
 .pl-sheet-title { font-size: .92rem; font-weight: 700; margin-bottom: 14px; }
 .pl-sheet-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .pl-sheet-person-row { display: flex; align-items: center; gap: 8px; }
