@@ -194,6 +194,9 @@ function renderLanding() {
           </div>
         `).join('')}
       </div>
+      <div style="text-align:center;padding:16px 0 8px">
+        <a href="/privacy" target="_blank" rel="noopener" style="color:#6B6B6B;font-size:12.5px;font-weight:600">Kebijakan Privasi</a>
+      </div>
     </div>
   `
 }
