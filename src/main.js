@@ -141,8 +141,8 @@ function fmtWeekRange(weekStartStr) {
   const start = new Date(weekStartStr + 'T00:00:00')
   const end = new Date(start); end.setDate(start.getDate() + 6)
   const sameMonth = start.getMonth() === end.getMonth()
-  const startStr = `${start.getDate()}${sameMonth ? '' : ' ' + MONTHS_ID[start.getMonth()].slice(0, 3)}`
-  const endStr = `${end.getDate()} ${MONTHS_ID[end.getMonth()].slice(0, 3)} ${end.getFullYear()}`
+  const startStr = `${start.getDate()}${sameMonth ? '' : ' ' + MONTHS_ID[start.getMonth()]}`
+  const endStr = `${end.getDate()} ${MONTHS_ID[end.getMonth()]} ${end.getFullYear()}`
   return `${startStr} – ${endStr}`
 }
 
@@ -611,7 +611,7 @@ function renderShiftGridOld() {
   let html = ''
   for (let di = 0; di < 7; di++) {
     const d = new Date(start); d.setDate(start.getDate() + di)
-    const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()].slice(0, 3)}`
+    const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
     html += `<div class="pl-shift-day">
       <div class="pl-shift-day-label">${dayLabel}</div>
       <div class="pl-shift-cells">`
@@ -642,7 +642,7 @@ function renderShiftGridCards() {
       <div class="pl-shift-card-rows">`
     for (let di = 0; di < 7; di++) {
       const d = new Date(start); d.setDate(start.getDate() + di)
-      const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()].slice(0, 3)}`
+      const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
       const assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === di && a.shift_index === si)
       const people = (assign ? assign.personnel_ids : []).map(pid => shiftPersonnel.find(p => p.id === pid)).filter(Boolean)
       html += `<div class="pl-shift-row" data-day="${di}" data-shift="${si}">
@@ -829,13 +829,12 @@ async function duplicatePreviousWeek() {
 // ── EKSPOR / BAGIKAN (JPG & PDF) — format per-hari (samain sama tampilan lama) ──
 // ══════════════════════════════════════════════════════════
 
-function buildExportCard() {
+// Format "Hari": satu blok per hari, isinya baris tiap shift — samain sama tab Hari
+function buildExportBodyDays() {
   const n = shiftConfig.shifts_per_day
   const labels = shiftConfig.shift_labels
   const start = new Date(shiftWeekStart + 'T00:00:00')
-  const sched = shiftSchedules.find(s => s.id === activeScheduleId)
-
-  let daysHtml = ''
+  let html = ''
   for (let di = 0; di < 7; di++) {
     const d = new Date(start); d.setDate(start.getDate() + di)
     const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
@@ -853,23 +852,107 @@ function buildExportCard() {
           </div>
         </div>`
     }
-    daysHtml += `
+    html += `
       <div style="margin-bottom:14px">
         <div style="font-size:13.5px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${dayLabel}</div>
         <div style="background:#FAFAF8;border:1px solid #EEEEEC;border-radius:12px;padding:4px 12px">${rowsHtml}</div>
       </div>`
   }
+  return html
+}
+
+// Format "Shift": satu blok per shift, isinya baris tiap hari — samain sama tab Shift
+function buildExportBodyShifts() {
+  const n = shiftConfig.shifts_per_day
+  const labels = shiftConfig.shift_labels
+  const start = new Date(shiftWeekStart + 'T00:00:00')
+  let html = ''
+  for (let si = 0; si < n; si++) {
+    let rowsHtml = ''
+    for (let di = 0; di < 7; di++) {
+      const d = new Date(start); d.setDate(start.getDate() + di)
+      const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
+      const assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === di && a.shift_index === si)
+      const people = (assign ? assign.personnel_ids : []).map(pid => shiftPersonnel.find(p => p.id === pid)).filter(Boolean)
+      rowsHtml += `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${di < 6 ? 'border-bottom:1px solid #EEEEEC' : ''}">
+          <div style="width:150px;flex-shrink:0;font-size:12.5px;font-weight:600;color:#484848">${dayLabel}</div>
+          <div style="flex:1;display:flex;flex-wrap:wrap;gap:6px">
+            ${people.length === 0
+              ? '<span style="font-size:13px;color:#B0B0AC">— belum ada —</span>'
+              : people.map(p => `<span style="display:inline-flex;align-items:center;gap:5px;border:1px solid ${p.color};border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;color:#1A1A1A"><span style="width:8px;height:8px;border-radius:50%;background:${p.color};display:inline-block"></span>${esc(p.name)}</span>`).join('')}
+          </div>
+        </div>`
+    }
+    html += `
+      <div style="margin-bottom:14px;border-radius:12px;overflow:hidden;border:1px solid #EEEEEC">
+        <div style="background:#1A2B48;color:#fff;font-size:13.5px;font-weight:700;padding:10px 14px">${esc(labels[si] || ('Shift ' + (si + 1)))}</div>
+        <div style="padding:4px 14px;background:#fff">${rowsHtml}</div>
+      </div>`
+  }
+  return html
+}
+
+// Format "Matriks": tabel personil x hari — samain sama tab Matriks
+function buildExportBodyMatrix() {
+  const n = shiftConfig.shifts_per_day
+  const labels = shiftConfig.shift_labels
+  const codes = computeShiftCodes(labels)
+  const start = new Date(shiftWeekStart + 'T00:00:00')
+  const dayHeaders = []
+  for (let di = 0; di < 7; di++) {
+    const d = new Date(start); d.setDate(start.getDate() + di)
+    dayHeaders.push(`${DAYS_ID[d.getDay()].slice(0, 3)} ${d.getDate()}`)
+  }
+  let rowsHtml = ''
+  for (const p of shiftPersonnel) {
+    let cellsHtml = ''
+    for (let di = 0; di < 7; di++) {
+      const onLeave = isOnLeave(p.id, di)
+      let si = -1
+      for (let k = 0; k < n; k++) {
+        const a = shiftAssignments.find(x => x.week_start === shiftWeekStart && x.day_index === di && x.shift_index === k)
+        if (a && (a.personnel_ids || []).includes(p.id)) { si = k; break }
+      }
+      if (onLeave) {
+        cellsHtml += `<td style="text-align:center;padding:8px 4px;font-size:12px;font-weight:700;color:#6B7280;background:#F3F4F6;border:1px solid #EEEEEC">L</td>`
+      } else if (si === -1) {
+        cellsHtml += `<td style="text-align:center;padding:8px 4px;font-size:12px;color:#B0B0AC;background:#FAFAF8;border:1px solid #EEEEEC">–</td>`
+      } else {
+        const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
+        cellsHtml += `<td style="text-align:center;padding:8px 4px;font-size:12px;font-weight:700;color:${color};background:${color}22;border:1px solid #EEEEEC">${esc(codes[si])}</td>`
+      }
+    }
+    rowsHtml += `<tr><td style="padding:8px 10px;font-size:12.5px;font-weight:600;color:#1A1A1A;white-space:nowrap;border:1px solid #EEEEEC">${esc(p.name)}</td>${cellsHtml}</tr>`
+  }
+  const legendItems = labels.slice(0, n).map((l, si) => {
+    const label = l || `Shift ${si + 1}`
+    const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
+    return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6B6B6B;margin-right:12px"><span style="width:9px;height:9px;border-radius:3px;background:${color};display:inline-block"></span>${esc(codes[si])} = ${esc(label)}</span>`
+  }).join('')
+  return `
+    <table style="border-collapse:collapse;width:100%;margin-bottom:10px">
+      <thead><tr><th></th>${dayHeaders.map(h => `<th style="font-size:11px;font-weight:700;color:#6B6B6B;padding:4px;border:1px solid #EEEEEC;background:#FAFAF8">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div>${legendItems}<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6B6B6B"><span style="width:9px;height:9px;border-radius:3px;background:#9CA3AF;display:inline-block"></span>L = Libur</span></div>
+  `
+}
+
+function buildExportCard() {
+  const sched = shiftSchedules.find(s => s.id === activeScheduleId)
+  const bodyHtml = showByNameView ? buildExportBodyMatrix() : gridViewMode === 'new' ? buildExportBodyShifts() : buildExportBodyDays()
 
   const card = document.createElement('div')
   card.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:#ffffff;padding:32px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'
   card.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div style="font-size:22px;font-weight:800;color:#1A1A1A">${esc(sched ? sched.name : 'Jadwal Shift')}</div>
-      <div style="font-size:13px;font-weight:700;color:#E11D48;background:#FFE4E6;padding:5px 12px;border-radius:999px">${fmtWeekRange(shiftWeekStart)}</div>
+      <div style="font-size:22px;font-weight:800;color:#1A2B48">${esc(sched ? sched.name : 'Jadwal Shift')}</div>
+      <div style="font-size:13px;font-weight:700;color:#1A2B48;background:#E8ECF2;padding:5px 12px;border-radius:999px">${fmtWeekRange(shiftWeekStart)}</div>
     </div>
     <div style="height:1px;background:#EEEEEC;margin:16px 0 20px"></div>
     ${shiftNoteText ? `<div style="background:#FFF8E1;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#78350F;white-space:pre-wrap">${esc(shiftNoteText)}</div>` : ''}
-    ${daysHtml}
+    ${bodyHtml}
     <div style="margin-top:8px;text-align:center;font-size:11.5px;color:#B0B0AC">Dibuat dengan MyShift · myshift.my.id · ${new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</div>
   `
   document.body.appendChild(card)
@@ -1009,7 +1092,7 @@ function renderScheduleDetail() {
     <div class="pl-sched-header">
       <button type="button" class="pl-sched-back" id="pl-sched-back">&lsaquo; Semua Jadwal</button>
       <div class="pl-sched-header-name">${esc(sched ? sched.name : '')}</div>
-      <button type="button" id="pl-shift-settings-toggle" class="pl-sched-settings-btn" aria-label="Kelola Personil & Shift" title="Kelola Personil & Shift">${svgIcon('wrench').replace('<svg ', '<svg style="width:16px;height:16px" ')}</button>
+      <button type="button" id="pl-shift-settings-toggle" class="pl-sched-settings-btn" aria-label="Kelola Personil & Shift" title="Kelola Personil & Shift">${svgIcon('settings').replace('<svg ', '<svg class="pl-gear-spin" style="width:17px;height:17px" ')}</button>
     </div>
     ${!ready ? `
       <div class="empty">
@@ -1028,10 +1111,11 @@ function renderScheduleDetail() {
         <button class="pl-period-nav-btn" id="pl-week-next" aria-label="Minggu berikutnya">&rsaquo;</button>
       </div>
       <div class="pl-view-tabs">
-        <button type="button" class="pl-view-tab ${!showByNameView && gridViewMode === 'old' ? 'active' : ''}" id="pl-tab-old">Per Hari</button>
-        <button type="button" class="pl-view-tab ${!showByNameView && gridViewMode === 'new' ? 'active' : ''}" id="pl-tab-new">Per Shift</button>
-        <button type="button" class="pl-view-tab ${showByNameView ? 'active' : ''}" id="pl-tab-byname">Lihat Matriks</button>
+        <button type="button" class="pl-view-tab ${!showByNameView && gridViewMode === 'old' ? 'active' : ''}" id="pl-tab-old">${svgIcon('pencil').replace('<svg ', '<svg style="width:13px;height:13px" ')} Hari</button>
+        <button type="button" class="pl-view-tab ${!showByNameView && gridViewMode === 'new' ? 'active' : ''}" id="pl-tab-new">${svgIcon('pencil').replace('<svg ', '<svg style="width:13px;height:13px" ')} Shift</button>
+        <button type="button" class="pl-view-tab ${showByNameView ? 'active' : ''}" id="pl-tab-byname">${svgIcon('eye').replace('<svg ', '<svg style="width:13px;height:13px" ')} Matriks</button>
       </div>
+      <div class="pl-view-tabs-hint">Tampilan yang aktif ini yang dipakai saat Bagikan.</div>
       ${showByNameView ? renderShiftGridByName() : gridViewMode === 'new' ? renderShiftGridCards() : renderShiftGridOld()}
       <button type="button" id="pl-duplicate-btn" class="pl-settings-toggle" style="margin-top:14px;margin-bottom:8px">
         ${svgIcon('copy').replace('<svg ', '<svg style="width:15px;height:15px" ')}
@@ -1066,6 +1150,8 @@ function wireScheduleDetail() {
       cell.addEventListener('click', () => {
         activeShiftCell = { day: Number(cell.dataset.day), shift: Number(cell.dataset.shift) }
         render()
+        const el = app.querySelector(`[data-day="${activeShiftCell.day}"][data-shift="${activeShiftCell.shift}"]`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
       })
     })
     app.querySelector('#pl-duplicate-btn').addEventListener('click', duplicatePreviousWeek)

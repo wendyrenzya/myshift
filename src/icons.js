@@ -20,6 +20,7 @@ import {
   CloudUpload,
   CloudDownload,
   Info,
+  Settings,
 } from 'lucide'
 
 const ICONS = {
@@ -42,6 +43,7 @@ const ICONS = {
   cloudUpload: CloudUpload,
   cloudDownload: CloudDownload,
   info: Info,
+  settings: Settings,
 }
 
 export function svgIcon(id) {

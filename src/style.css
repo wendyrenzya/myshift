@@ -305,15 +305,23 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 .pl-sched-del { background: none; border: none; color: var(--text-3); cursor: pointer; padding: 4px; display: flex; }
 
 /* ── Header jadwal (di dalam detail satu jadwal) ── */
-.pl-sched-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
-.pl-sched-back { background: none; border: none; color: var(--text-3); font-size: .8rem; font-weight: 600; cursor: pointer; padding: 4px 0; flex-shrink: 0; }
-.pl-sched-header-name { flex: 1; text-align: center; font-size: .92rem; font-weight: 700; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-sched-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; min-height: 34px; }
+.pl-sched-back { background: none; border: none; color: var(--text-3); font-size: .8rem; font-weight: 600; cursor: pointer; padding: 4px 0; flex-shrink: 0; position: relative; z-index: 1; }
+.pl-sched-header-name {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  max-width: calc(100% - 150px);
+  font-size: .92rem; font-weight: 700; color: var(--accent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
+}
 .pl-sched-settings-btn {
   flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
   background: var(--bg-card); border: 1px solid var(--border); color: var(--text-2);
   display: flex; align-items: center; justify-content: center; cursor: pointer;
+  position: relative; z-index: 1;
 }
 .pl-sched-settings-btn:active { border-color: var(--border-dark); }
+.pl-gear-spin { animation: pl-gear-rotate 2s linear infinite; }
+@keyframes pl-gear-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 /* ── Kartu PERIODE (navigator minggu) ── */
 .pl-period-card {
@@ -337,11 +345,13 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   padding: 4px; margin-bottom: 16px; gap: 2px;
 }
 .pl-view-tab {
-  flex: 1; background: none; border: none; border-radius: 999px;
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+  background: none; border: none; border-radius: 999px;
   padding: 9px 6px; font-size: .78rem; font-weight: 600; color: var(--text-2);
   cursor: pointer; font-family: inherit; transition: background var(--ease), color var(--ease);
 }
 .pl-view-tab.active { background: var(--accent); color: var(--white); font-weight: 700; }
+.pl-view-tabs-hint { font-size: .68rem; color: var(--text-3); text-align: center; margin: -10px 0 16px; }
 
 /* ── Halaman Landing / Splash ── */
 .pl-landing { padding-top: 8px; }
