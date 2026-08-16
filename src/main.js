@@ -253,7 +253,7 @@ function renderScheduleHome() {
       ` : `
         <div class="pl-drive-notice">
           ${svgIcon('info').replace('<svg ', '<svg style="width:15px;height:15px" ')}
-          <span>Backup ini tersimpan di <strong>Drive kamu sendiri</strong>, bukan di server kami — kami nggak nyimpen atau bisa lihat isinya. Karena itu, kamu mungkin perlu <strong>login ulang tiap mau Backup/Restore</strong>, tergantung sesi Google di browser masih aktif atau nggak. Baca <a href="/privacy.html" target="_blank" rel="noopener">Kebijakan Privasi</a> kami.</span>
+          <span>Backup ini tersimpan di <strong>Drive kamu sendiri</strong>, bukan di server kami — kami nggak nyimpen atau bisa lihat isinya. Karena itu, kamu mungkin perlu <strong>login ulang tiap mau Backup/Restore</strong>, tergantung sesi Google di browser masih aktif atau nggak. Baca <a href="/privacy" target="_blank" rel="noopener">Kebijakan Privasi</a> kami.</span>
         </div>
         ${!driveConnected ? `
           <button type="button" class="pl-backup-btn" id="pl-drive-connect" style="width:100%" ${driveBusy ? 'disabled' : ''}>${GDRIVE_LOGO} ${driveBusy ? 'Menghubungkan…' : 'Backup/Restore dengan Google Drive'}</button>
