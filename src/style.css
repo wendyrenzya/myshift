@@ -261,12 +261,13 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
 }
 .pl-sheet-leave-btn.active { background: #FEE2E2; border-color: #FCA5A5; color: #DC2626; }
 
+.pl-share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .pl-share-opt {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; text-align: left;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  text-align: center;
   background: var(--bg-input); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 12px 14px;
-  font-size: .88rem; font-weight: 600; color: var(--text);
+  border-radius: var(--r-lg); padding: 16px 10px;
+  font-size: .8rem; font-weight: 600; color: var(--text);
   cursor: pointer; font-family: inherit;
 }
 .pl-share-opt:active { transform: var(--active-press); }
@@ -355,8 +356,8 @@ body { padding: 20px 10px calc(env(safe-area-inset-bottom) + 40px); }
   border: 1px solid rgba(255,255,255,.5);
 }
 .pl-period-card.floating .pl-period-label { display: none; }
-.pl-period-card.floating .pl-period-range { font-size: .68rem; transition: font-size var(--ease-out); }
-.pl-period-card.floating .pl-period-nav-btn { width: 26px; height: 26px; font-size: .85rem; background: rgba(255,255,255,.5); }
+.pl-period-card.floating .pl-period-range { font-size: .78rem; transition: font-size var(--ease-out); }
+.pl-period-card.floating .pl-period-nav-btn { width: 30px; height: 30px; font-size: 1rem; background: rgba(255,255,255,.5); }
 .pl-period-nav-btn {
   flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
   background: var(--bg-input); border: none; color: var(--text-2);

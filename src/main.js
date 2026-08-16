@@ -976,16 +976,7 @@ function exportFilename(ext) {
   return `jadwal-shift-${slug}-${shiftWeekStart}.${ext}`
 }
 
-async function shareFileOrDownload(blob, filename, mime, shareTitle = 'Jadwal Shift') {
-  const file = new File([blob], filename, { type: mime })
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: shareTitle })
-      return
-    } catch (err) {
-      if (err && err.name === 'AbortError') return // user batal share, jangan fallback ke download
-    }
-  }
+function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -996,6 +987,19 @@ async function shareFileOrDownload(blob, filename, mime, shareTitle = 'Jadwal Sh
   setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
+async function shareFileOrDownload(blob, filename, mime, shareTitle = 'Jadwal Shift') {
+  const file = new File([blob], filename, { type: mime })
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: shareTitle })
+      return
+    } catch (err) {
+      if (err && err.name === 'AbortError') return // user batal share, jangan fallback ke download
+    }
+  }
+  triggerDownload(blob, filename)
+}
+
 async function shareAsImage() {
   if (sharing) return
   sharing = true; showShareSheet = false; render()
@@ -1003,6 +1007,21 @@ async function shareAsImage() {
     const canvas = await captureShiftCanvas()
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92))
     await shareFileOrDownload(blob, exportFilename('jpg'), 'image/jpeg')
+  } catch (err) {
+    console.error('Gagal membuat JPG:', err)
+    alert('Gagal membuat gambar. Coba lagi.')
+  } finally {
+    sharing = false; render()
+  }
+}
+
+async function downloadAsImage() {
+  if (sharing) return
+  sharing = true; showShareSheet = false; render()
+  try {
+    const canvas = await captureShiftCanvas()
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92))
+    triggerDownload(blob, exportFilename('jpg'))
   } catch (err) {
     console.error('Gagal membuat JPG:', err)
     alert('Gagal membuat gambar. Coba lagi.')
@@ -1029,20 +1048,46 @@ async function shareAsPDF() {
   }
 }
 
+async function downloadAsPDF() {
+  if (sharing) return
+  sharing = true; showShareSheet = false; render()
+  try {
+    const [canvas, { jsPDF }] = await Promise.all([captureShiftCanvas(), import('jspdf')])
+    const imgData = canvas.toDataURL('image/jpeg', 0.95)
+    const pdf = new jsPDF({ unit: 'px', format: [canvas.width, canvas.height] })
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height)
+    const blob = pdf.output('blob')
+    triggerDownload(blob, exportFilename('pdf'))
+  } catch (err) {
+    console.error('Gagal membuat PDF:', err)
+    alert('Gagal membuat PDF. Coba lagi.')
+  } finally {
+    sharing = false; render()
+  }
+}
+
 function renderShareSheet() {
   const sched = shiftSchedules.find(s => s.id === activeScheduleId)
   return `
     <div class="pl-overlay" id="pl-share-overlay">
       <div class="pl-sheet">
-        <div class="pl-sheet-title">Bagikan ${esc(sched ? sched.name : 'Jadwal')} — ${fmtWeekRange(shiftWeekStart)}</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="pl-sheet-title">${esc(sched ? sched.name : 'Jadwal')}: ${fmtWeekRange(shiftWeekStart)}</div>
+        <div class="pl-share-grid">
           <button type="button" class="pl-share-opt" id="pl-share-jpg">
-            ${svgIcon('image').replace('<svg ', '<svg style="width:18px;height:18px" ')}
-            <span>Simpan sebagai JPG</span>
+            ${svgIcon('image').replace('<svg ', '<svg style="width:20px;height:20px" ')}
+            <span>Bagikan JPG</span>
           </button>
           <button type="button" class="pl-share-opt" id="pl-share-pdf">
-            ${svgIcon('fileText').replace('<svg ', '<svg style="width:18px;height:18px" ')}
-            <span>Simpan sebagai PDF</span>
+            ${svgIcon('fileText').replace('<svg ', '<svg style="width:20px;height:20px" ')}
+            <span>Bagikan PDF</span>
+          </button>
+          <button type="button" class="pl-share-opt" id="pl-download-jpg">
+            ${svgIcon('download').replace('<svg ', '<svg style="width:20px;height:20px" ')}
+            <span>Download JPG</span>
+          </button>
+          <button type="button" class="pl-share-opt" id="pl-download-pdf">
+            ${svgIcon('download').replace('<svg ', '<svg style="width:20px;height:20px" ')}
+            <span>Download PDF</span>
           </button>
         </div>
       </div>
@@ -1055,6 +1100,8 @@ function wireShareSheet() {
   overlay.addEventListener('click', (e) => { if (e.target === overlay) { showShareSheet = false; render() } })
   app.querySelector('#pl-share-jpg').addEventListener('click', shareAsImage)
   app.querySelector('#pl-share-pdf').addEventListener('click', shareAsPDF)
+  app.querySelector('#pl-download-jpg').addEventListener('click', downloadAsImage)
+  app.querySelector('#pl-download-pdf').addEventListener('click', downloadAsPDF)
 }
 
 function renderNotesSheet() {
