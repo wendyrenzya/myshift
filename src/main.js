@@ -810,7 +810,8 @@ function renderShiftGridOld() {
     for (let si = 0; si < n; si++) {
       const assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === di && a.shift_index === si)
       const people = (assign ? assign.personnel_ids : []).map(pid => shiftPersonnel.find(p => p.id === pid)).filter(Boolean)
-      html += `<div class="pl-shift-cell" data-day="${di}" data-shift="${si}">
+      const isSpot1 = activeShiftCell && activeShiftCell.day === di && activeShiftCell.shift === si
+      html += `<div class="pl-shift-cell ${isSpot1 ? 'pl-cell-spotlight' : ''}" data-day="${di}" data-shift="${si}">
         <div class="pl-shift-cell-label">${esc(labels[si] || ('Shift ' + (si + 1)))}</div>
         ${people.length === 0
           ? '<div class="pl-shift-cell-empty">+ isi personil</div>'
@@ -837,7 +838,8 @@ function renderShiftGridCards() {
       const dayLabel = `${DAYS_ID[d.getDay()]}, ${d.getDate()} ${MONTHS_ID[d.getMonth()]}`
       const assign = shiftAssignments.find(a => a.week_start === shiftWeekStart && a.day_index === di && a.shift_index === si)
       const people = (assign ? assign.personnel_ids : []).map(pid => shiftPersonnel.find(p => p.id === pid)).filter(Boolean)
-      html += `<div class="pl-shift-row" data-day="${di}" data-shift="${si}">
+      const isSpot2 = activeShiftCell && activeShiftCell.day === di && activeShiftCell.shift === si
+      html += `<div class="pl-shift-row ${isSpot2 ? 'pl-cell-spotlight' : ''}" data-day="${di}" data-shift="${si}">
         <div class="pl-shift-row-day">${dayLabel}</div>
         ${people.length === 0
           ? '<div class="pl-shift-cell-empty">+ isi personil</div>'
