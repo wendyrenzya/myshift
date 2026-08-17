@@ -230,9 +230,6 @@ function renderLanding() {
       <div style="text-align:center;padding:16px 0 8px">
         <a href="/privacy" target="_blank" rel="noopener" style="color:#6B6B6B;font-size:12.5px;font-weight:600">Kebijakan Privasi</a>
       </div>
-      <div style="text-align:center;padding:0 0 8px;font-size:12.5px;color:#6B6B6B">
-        Mau support kami? <a href="https://renzya.my.id" target="_blank" rel="noopener" style="color:var(--coral);font-weight:700">Beli ebook</a>
-      </div>
     </div>
   `
 }
@@ -880,8 +877,11 @@ function renderShiftGridByName() {
   const n = shiftConfig.shifts_per_day
   const labels = shiftConfig.shift_labels
   const codes = computeShiftCodes(labels)
+  const times = shiftConfig.shift_times || []
   const start = new Date(shiftWeekStart + 'T00:00:00')
   const today = fmtYMD(new Date())
+  const longestName = shiftPersonnel.reduce((max, p) => Math.max(max, (p.name || '').length), 0)
+  const nameColWidth = Math.min(280, Math.max(132, longestName * 8 + 38))
   const dayHeaders = []
   for (let di = 0; di < 7; di++) {
     const d = new Date(start); d.setDate(start.getDate() + di)
@@ -898,15 +898,17 @@ function renderShiftGridByName() {
         if (a && (a.personnel_ids || []).includes(p.id)) { si = k; break }
       }
       if (onLeave) {
-        cellsHtml += `<td class="pl-shift-byname-cell pl-byname-leave">L</td>`
+        cellsHtml += `<td class="pl-shift-byname-cell pl-byname-leave"><span class="pl-byname-code">L</span><span class="pl-byname-label">Libur</span></td>`
       } else if (si === -1) {
-        cellsHtml += `<td class="pl-shift-byname-cell pl-byname-empty">–</td>`
+        cellsHtml += `<td class="pl-shift-byname-cell pl-byname-empty"><span class="pl-byname-code">–</span><span class="pl-byname-label">Kosong</span></td>`
       } else {
         const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
-        cellsHtml += `<td class="pl-shift-byname-cell" style="background:${color}22;color:${color};border-color:${color}55">${esc(codes[si])}</td>`
+        const label = labels[si] || `Shift ${si + 1}`
+        const formatted = formatShiftTime(times[si])
+        cellsHtml += `<td class="pl-shift-byname-cell" style="background:${color}22;color:${color};border-color:${color}55"><span class="pl-byname-code">${esc(codes[si])}</span><span class="pl-byname-label">${esc(label)}</span>${formatted ? `<small class="pl-byname-time">${esc(formatted)}</small>` : ''}</td>`
       }
     }
-    rowsHtml += `<tr><td class="pl-shift-byname-name"><span class="pl-shift-dot" style="background:${p.color}"></span>${esc(p.name.split(' ')[0])}</td>${cellsHtml}</tr>`
+    rowsHtml += `<tr><td class="pl-shift-byname-name"><span class="pl-shift-dot" style="background:${p.color}"></span><span>${esc(p.name)}</span></td>${cellsHtml}</tr>`
   }
   const headerHtml = dayHeaders.map(h => `
     <th>
@@ -917,22 +919,14 @@ function renderShiftGridByName() {
       </svg>
     </th>
   `).join('')
-  const times = shiftConfig.shift_times || []
-  const legendItems = labels.slice(0, n).map((l, si) => {
-    const label = l || `Shift ${si + 1}`
-    const color = SHIFT_COLORS[si % SHIFT_COLORS.length]
-    const t = formatShiftTime(times[si])
-    return `<span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:${color}"></span>${esc(codes[si])} = ${esc(label)}${t ? ` <span class="pl-byname-legend-time">(${esc(t)})</span>` : ''}</span>`
-  }).join('')
   return `
-    <div class="pl-shift-byname-wrap">
+    <div class="pl-shift-byname-wrap" style="--matrix-name-width:${nameColWidth}px">
       <table class="pl-shift-byname-table">
         <thead><tr><th></th>${headerHtml}</tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
     <div class="pl-byname-legend">
-      ${legendItems}
       <span class="pl-byname-legend-item"><span class="pl-byname-legend-dot" style="background:#9CA3AF"></span>L = Libur</span>
     </div>
   `
