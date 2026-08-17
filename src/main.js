@@ -629,7 +629,7 @@ function wireShiftSettingsSheet() {
     updateShiftCount(Number(e.target.value) || 1)
   })
   app.querySelectorAll('.pl-shift-label-input').forEach(inp => {
-    inp.addEventListener('focus', e => e.target.select())
+    wireClearOnFirstKeystroke(inp)
     inp.addEventListener('change', e => {
       updateShiftLabel(Number(inp.dataset.i), e.target.value.trim())
     })
@@ -643,7 +643,7 @@ function wireShiftSettingsSheet() {
     })
   })
   app.querySelectorAll('.pl-time-box').forEach(inp => {
-    inp.addEventListener('focus', e => e.target.select())
+    wireClearOnFirstKeystroke(inp)
     inp.addEventListener('input', e => {
       e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2)
       if (e.target.value.length === 2) {
@@ -1440,6 +1440,18 @@ function render() {
   } else {
     doRender()
   }
+}
+
+// Ganti pendekatan auto-select isi lama input: bukan pakai .select() (itu yang bikin toolbar
+// Translate/Potong/Salin/Tempel native Android muncul), tapi kosongin otomatis pas huruf/angka
+// pertama diketik setelah fokus — hasil akhirnya sama (langsung ganti), tapi gak ada seleksi teks.
+function wireClearOnFirstKeystroke(inp) {
+  inp.addEventListener('focus', e => { e.target.dataset.freshFocus = '1' })
+  inp.addEventListener('keydown', e => {
+    if (e.target.dataset.freshFocus !== '1') return
+    delete e.target.dataset.freshFocus
+    if (e.key.length === 1) e.target.value = '' // huruf/angka biasa -> kosongin dulu, biar browser lanjut insert normal
+  })
 }
 
 function esc(s) {
