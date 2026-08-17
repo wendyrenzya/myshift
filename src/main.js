@@ -353,7 +353,7 @@ async function driveConnect() {
     driveStatusText = 'Terhubung. Belum ada backup tersimpan di sesi ini.'
   } catch (err) {
     console.error(err)
-    alert('Belum berhasil terhubung ke Google Drive. Kalau tombol Backup/Restore belum muncul, tap "Hubungkan Google Drive" lagi.')
+    await customAlert('Belum berhasil terhubung ke Google Drive. Kalau tombol Backup/Restore belum muncul, tap "Hubungkan Google Drive" lagi.')
   } finally {
     driveBusy = false; render()
   }
@@ -370,7 +370,7 @@ async function driveBackupNow() {
   } catch (err) {
     console.error(err)
     if (err.message && err.message.includes('Sesi Google Drive habis')) driveConnected = false
-    alert(err.message || 'Gagal backup ke Drive.')
+    await customAlert(err.message || 'Gagal backup ke Drive.')
   } finally {
     driveBusy = false; render()
   }
@@ -383,7 +383,7 @@ async function driveRestoreNow() {
   try {
     const result = await driveDownload()
     if (!result) {
-      alert('Belum ada backup MyShift di Drive akun ini.')
+      await customAlert('Belum ada backup MyShift di Drive akun ini.')
       driveBusy = false; render()
       return
     }
@@ -400,11 +400,11 @@ async function driveRestoreNow() {
     activeScheduleId = null
     await loadSchedules()
     driveStatusText = `Direstore dari Drive · ${new Date(result.modifiedTime).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}`
-    alert('Restore dari Drive berhasil!')
+    await customAlert('Restore dari Drive berhasil!')
   } catch (err) {
     console.error(err)
     if (err.message && err.message.includes('Sesi Google Drive habis')) driveConnected = false
-    alert(err.message || 'Gagal restore dari Drive.')
+    await customAlert(err.message || 'Gagal restore dari Drive.')
   } finally {
     driveBusy = false; render()
   }
@@ -500,11 +500,11 @@ async function importBackupFile(file) {
   try {
     data = JSON.parse(await file.text())
   } catch (e) {
-    alert('File tidak valid. Pastikan file JSON hasil backup MyShift.')
+    await customAlert('File tidak valid. Pastikan file JSON hasil backup MyShift.')
     return
   }
   if (data.app !== 'myshift' || !Array.isArray(data.schedules)) {
-    alert('File tidak valid. Pastikan file JSON hasil backup MyShift.')
+    await customAlert('File tidak valid. Pastikan file JSON hasil backup MyShift.')
     return
   }
   if (!(await customConfirm('Import akan MENGGANTI semua data yang ada sekarang (semua jadwal, personil, dan histori) dengan isi file ini. Lanjutkan?', { danger: true, okLabel: 'Ya, Timpa' }))) return
@@ -518,7 +518,7 @@ async function importBackupFile(file) {
   }
   activeScheduleId = null
   await loadSchedules()
-  alert('Import berhasil! Data sudah diganti sesuai file backup.')
+  await customAlert('Import berhasil! Data sudah diganti sesuai file backup.')
   render()
 }
 
@@ -1000,7 +1000,7 @@ async function duplicatePreviousWeek() {
   const prevWeekStart = fmtYMD(prevDate)
   const allAssignments = await getAllLocal('shift_assignments')
   const prevAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId && a.week_start === prevWeekStart && (a.personnel_ids || []).length > 0)
-  if (prevAssignments.length === 0) { alert('Minggu sebelumnya belum ada jadwal yang bisa diduplikat.'); return }
+  if (prevAssignments.length === 0) { await customAlert('Minggu sebelumnya belum ada jadwal yang bisa diduplikat.'); return }
   const hasCurrent = shiftAssignments.some(a => (a.personnel_ids || []).length > 0)
   if (hasCurrent && !(await customConfirm('Jadwal minggu ini sudah ada isinya. Timpa dengan jadwal minggu lalu?', { okLabel: 'Ya, Timpa' }))) return
   const currentAssignments = allAssignments.filter(a => a.schedule_id === activeScheduleId && a.week_start === shiftWeekStart)
@@ -1202,7 +1202,7 @@ async function shareAsImage() {
     await shareFileOrDownload(blob, exportFilename('jpg'), 'image/jpeg')
   } catch (err) {
     console.error('Gagal membuat JPG:', err)
-    alert('Gagal membuat gambar. Coba lagi.')
+    await customAlert('Gagal membuat gambar. Coba lagi.')
   } finally {
     sharing = false; render()
   }
@@ -1217,7 +1217,7 @@ async function downloadAsImage() {
     triggerDownload(blob, exportFilename('jpg'))
   } catch (err) {
     console.error('Gagal membuat JPG:', err)
-    alert('Gagal membuat gambar. Coba lagi.')
+    await customAlert('Gagal membuat gambar. Coba lagi.')
   } finally {
     sharing = false; render()
   }
@@ -1235,7 +1235,7 @@ async function shareAsPDF() {
     await shareFileOrDownload(blob, exportFilename('pdf'), 'application/pdf')
   } catch (err) {
     console.error('Gagal membuat PDF:', err)
-    alert('Gagal membuat PDF. Coba lagi.')
+    await customAlert('Gagal membuat PDF. Coba lagi.')
   } finally {
     sharing = false; render()
   }
@@ -1253,7 +1253,7 @@ async function downloadAsPDF() {
     triggerDownload(blob, exportFilename('pdf'))
   } catch (err) {
     console.error('Gagal membuat PDF:', err)
-    alert('Gagal membuat PDF. Coba lagi.')
+    await customAlert('Gagal membuat PDF. Coba lagi.')
   } finally {
     sharing = false; render()
   }
