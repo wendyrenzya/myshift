@@ -187,53 +187,37 @@ function renderSplashTiles() {
 function renderLanding() {
   return `
     <div class="pl-landing">
-      <header class="pl-landing-nav">
-        <a class="pl-landing-brand" href="/" aria-label="MyShift">
-          <span class="pl-landing-brand-mark">${renderSplashTiles()}</span>
-          <span>MyShift</span>
-        </a>
-        <span class="pl-landing-nav-note">Jadwal kerja, tanpa drama</span>
-      </header>
-
-      <section class="pl-landing-hero">
-        <div class="pl-landing-hero-copy">
-          <div class="pl-landing-eyebrow"><span></span> WORK SMARTER, NOT HARDER</div>
-          <div class="pl-landing-title">Jadwal shift yang rapi,<br><em>sejak klik pertama.</em></div>
-          <div class="pl-landing-sub">Susun shift tim tanpa spreadsheet, tanpa tabel berantakan, dan tanpa perlu membuat akun. Cukup klik nama, atur minggu, lalu bagikan.</div>
-          <button type="button" class="pl-landing-cta" id="pl-landing-start">
-            <span>Mulai Sekarang</span>
-            ${svgIcon('chevronDown').replace('<svg ', '<svg style="width:15px;height:15px;transform:rotate(-90deg)" ')}
-          </button>
-          <div class="pl-landing-trust"><span class="pl-trust-check">✓</span> Gratis selamanya <span class="pl-trust-divider"></span> Data tersimpan di perangkatmu</div>
+      <div class="pl-landing-hero">
+        <div class="pl-landing-icon">${renderSplashTiles()}</div>
+        <div class="pl-landing-title">MyShift</div>
+        <div class="pl-landing-sub">Susun shift tanpa perlu buka spreadsheet — cukup klik nama. Tanpa ribet ngetik, tanpa bikin tabel, tanpa copy-paste, dan langsung bagikan sebagai JPG atau PDF.</div>
+        <button type="button" class="pl-landing-cta" id="pl-landing-start">
+          <span>Mulai Sekarang</span>
+          ${svgIcon('chevronDown').replace('<svg ', '<svg style="width:15px;height:15px;transform:rotate(-90deg)" ')}
+        </button>
+      </div>
+      <div class="pl-landing-features">
+        <div class="pl-feature-card">
+          <span class="pl-feature-tag">Unlimited</span>
+          <span class="pl-feature-icon-badge" style="background:#DCFCE7;color:#16A34A">${svgIcon('usersRound').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Bikin Banyak Jadwal</div>
         </div>
-        <div class="pl-landing-visual" aria-label="Contoh jadwal shift mingguan">
-          <div class="pl-visual-glow"></div>
-          <div class="pl-schedule-window">
-            <div class="pl-window-topbar"><span class="pl-window-dots"><i></i><i></i><i></i></span><span class="pl-window-title">Jadwal Tim Pagi</span><span class="pl-window-menu">•••</span></div>
-            <div class="pl-window-meta"><span>Minggu, 18–24 Agustus</span><b>+ Tambah</b></div>
-            <div class="pl-window-grid">
-              <div class="pl-grid-head"><span></span><b>Sen</b><b>Sel</b><b>Rab</b><b>Kam</b><b>Jum</b></div>
-              <div class="pl-grid-row"><span class="pl-grid-person"><i class="pl-person-a"></i> Raka</span><em>PAGI</em><em class="pl-cell-soft">PAGI</em><em>PAGI</em><em class="pl-cell-off">Libur</em><em>PAGI</em></div>
-              <div class="pl-grid-row"><span class="pl-grid-person"><i class="pl-person-b"></i> Nisa</span><em class="pl-cell-mid">SIANG</em><em>SIANG</em><em class="pl-cell-soft">SIANG</em><em>SIANG</em><em class="pl-cell-off">Libur</em></div>
-              <div class="pl-grid-row"><span class="pl-grid-person"><i class="pl-person-c"></i> Dimas</span><em class="pl-cell-off">Libur</em><em class="pl-cell-mid">MALAM</em><em>MALAM</em><em class="pl-cell-soft">MALAM</em><em>MALAM</em></div>
-            </div>
-            <div class="pl-window-footer"><span><i class="pl-status-dot"></i> 3 personil aktif</span><b>Siap dibagikan</b></div>
-          </div>
-          <div class="pl-visual-note pl-note-share"><span>${svgIcon('share').replace('<svg ', '<svg style="width:15px;height:15px" ')}</span> Bagikan dalam sekali tap</div>
-          <div class="pl-visual-note pl-note-safe"><span>${svgIcon('shieldCheck').replace('<svg ', '<svg style="width:15px;height:15px" ')}</span> Aman di perangkatmu</div>
+        <div class="pl-feature-card">
+          <span class="pl-feature-icon-badge" style="background:#FFE4DC;color:#EA580C">${svgIcon('share').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Bagikan Sekali Tap</div>
         </div>
-      </section>
-
-      <section class="pl-landing-features">
-        <div class="pl-features-heading"><span>SEMUA YANG KAMU BUTUHKAN</span><h2>Lebih sedikit administrasi.<br>Lebih banyak waktu.</h2></div>
-        <div class="pl-feature-card pl-feature-card-wide"><span class="pl-feature-number">01</span><span class="pl-feature-icon-badge feature-green">${svgIcon('usersRound').replace('<svg ', '<svg style="width:19px;height:19px" ')}</span><div class="pl-feature-card-title">Banyak jadwal, satu tempat</div><p>Kelola jadwal kantor, toko, ronda, atau tim mana pun tanpa batas.</p></div>
-        <div class="pl-feature-card pl-feature-card-wide"><span class="pl-feature-number">02</span><span class="pl-feature-icon-badge feature-orange">${svgIcon('share').replace('<svg ', '<svg style="width:19px;height:19px" ')}</span><div class="pl-feature-card-title">Bagikan tanpa menjelaskan</div><p>Ekspor jadwal menjadi JPG atau PDF yang siap dikirim ke grup.</p></div>
-        <div class="pl-feature-card pl-feature-card-wide"><span class="pl-feature-number">03</span><span class="pl-feature-icon-badge feature-blue">${svgIcon('download').replace('<svg ', '<svg style="width:19px;height:19px" ')}</span><div class="pl-feature-card-title">Backup kapan saja</div><p>Data lokal, ringan, dan bisa kamu backup atau pulihkan sendiri.</p></div>
-      </section>
-
-      <section class="pl-faq">
-        <div class="pl-faq-heading"><span>MASIH PENASARAN?</span><div class="pl-faq-title">Pertanyaan Umum</div><p>Yang penting kamu tahu sebelum mulai.</p></div>
-        <div class="pl-faq-list">${FAQ_ITEMS.map((item, i) => `
+        <div class="pl-feature-card">
+          <span class="pl-feature-icon-badge" style="background:#DBEAFE;color:#2563EB">${svgIcon('download').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Backup Kapan Aja</div>
+        </div>
+        <div class="pl-feature-card">
+          <span class="pl-feature-icon-badge" style="background:#F3E8FF;color:#9333EA">${svgIcon('gift').replace('<svg ', '<svg style="width:20px;height:20px" ')}</span>
+          <div class="pl-feature-card-title">Gratis Tanpa Langganan</div>
+        </div>
+      </div>
+      <div class="pl-faq">
+        <div class="pl-faq-title">Pertanyaan Umum</div>
+        ${FAQ_ITEMS.map((item, i) => `
           <div class="pl-faq-item">
             <button type="button" class="pl-faq-q ${openFaqIndex === i ? 'open' : ''}" data-i="${i}">
               <span>${esc(item.q)}</span>
@@ -241,10 +225,14 @@ function renderLanding() {
             </button>
             ${openFaqIndex === i ? `<div class="pl-faq-a">${esc(item.a)}</div>` : ''}
           </div>
-        `).join('')}</div>
-      </section>
-
-      <footer class="pl-landing-footer"><span>MyShift © 2026</span><span><a href="/privacy" target="_blank" rel="noopener">Kebijakan Privasi</a><a href="https://renzya.my.id" target="_blank" rel="noopener">Beli ebook</a></span></footer>
+        `).join('')}
+      </div>
+      <div style="text-align:center;padding:16px 0 8px">
+        <a href="/privacy" target="_blank" rel="noopener" style="color:#6B6B6B;font-size:12.5px;font-weight:600">Kebijakan Privasi</a>
+      </div>
+      <div style="text-align:center;padding:0 0 8px;font-size:12.5px;color:#6B6B6B">
+        Mau support kami? <a href="https://renzya.my.id" target="_blank" rel="noopener" style="color:var(--coral);font-weight:700">Beli ebook</a>
+      </div>
     </div>
   `
 }
