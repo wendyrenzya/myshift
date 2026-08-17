@@ -1393,12 +1393,19 @@ function wireScheduleDetail() {
       cell.addEventListener('click', () => {
         activeShiftCell = { day: Number(cell.dataset.day), shift: Number(cell.dataset.shift) }
         render()
-        const el = app.querySelector(`[data-day="${activeShiftCell.day}"][data-shift="${activeShiftCell.shift}"]`)
-        if (el) {
-          const rect = el.getBoundingClientRect()
-          const targetY = window.scrollY + rect.top - 90 // 90px dari atas viewport, kasih ruang buat kartu PERIODE
-          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' })
-        }
+        // Tunggu 2 frame (double rAF) — pastiin DOM & layout (termasuk sheet-nya) udah beneran
+        // ke-render dulu sebelum ukur posisi. Tanpa ini, perhitungan bisa kebaca sebelum
+        // View Transition-nya kelar apply, jadi cell malah numpuk di atas sheet-nya sendiri.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const el = app.querySelector(`[data-day="${activeShiftCell.day}"][data-shift="${activeShiftCell.shift}"]`)
+            if (el) {
+              const rect = el.getBoundingClientRect()
+              const targetY = window.scrollY + rect.top - 90
+              window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' })
+            }
+          })
+        })
       })
     })
     app.querySelector('#pl-duplicate-btn').addEventListener('click', duplicatePreviousWeek)
