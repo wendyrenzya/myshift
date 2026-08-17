@@ -1370,7 +1370,7 @@ function renderScheduleDetail() {
       <button type="button" id="pl-share-btn" class="pl-fab pl-share-fab" aria-label="Bagikan Jadwal" title="Bagikan Jadwal" ${sharing ? 'disabled' : ''}>
         ${svgIcon('share').replace('<svg ', '<svg style="width:18px;height:18px" ')}
       </button>
-      ${activeShiftCell ? '<div style="height:60vh"></div>' : ''}
+      ${activeShiftCell ? '<div style="height:85vh"></div>' : ''}
     `}
     ${showShiftSettings ? renderShiftSettingsSheet(!ready) : ''}
     ${activeShiftCell ? renderShiftSheet() : ''}
@@ -1394,7 +1394,11 @@ function wireScheduleDetail() {
         activeShiftCell = { day: Number(cell.dataset.day), shift: Number(cell.dataset.shift) }
         render()
         const el = app.querySelector(`[data-day="${activeShiftCell.day}"][data-shift="${activeShiftCell.shift}"]`)
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          const targetY = window.scrollY + rect.top - 90 // 90px dari atas viewport, kasih ruang buat kartu PERIODE
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' })
+        }
       })
     })
     app.querySelector('#pl-duplicate-btn').addEventListener('click', duplicatePreviousWeek)
