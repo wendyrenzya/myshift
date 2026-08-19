@@ -24,6 +24,10 @@ const app = document.getElementById('app')
 // ── State ──
 const SHIFT_COLORS = ['#E11D48','#EA580C','#D97706','#65A30D','#059669','#0891B2','#2563EB','#7C3AED','#C026D3','#DB2777']
 let showLanding = true           // splash/landing pas pertama buka (per sesi)
+let deferredInstallPrompt = null // event beforeinstallprompt yang ditahan, dipicu manual lewat tombol Install
+let installAvailable = false     // true kalau Chrome/Edge (Android, Windows, desktop) kasih sinyal siap-install
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
 let openFaqIndex = null          // index FAQ yang lagi kebuka
 let shiftSchedules = []          // daftar jadwal shift (Shift Kantor, Shift Ronda Malam, dst)
 let activeScheduleId = null      // jadwal yang lagi dibuka; null = halaman daftar jadwal
@@ -215,6 +219,11 @@ function renderLanding() {
           <div class="pl-feature-card-title">Gratis Tanpa Langganan</div>
         </div>
       </div>
+      ${!isStandaloneApp && (installAvailable || isIOS) ? `
+        <div style="max-width:340px;margin:0 auto 28px;padding:0 12px">
+          <button type="button" class="pl-backup-btn" id="pl-install-btn">${svgIcon('download').replace('<svg ', '<svg style=\"width:16px;height:16px\" ')} ${isIOS ? 'Tambah ke Layar Utama' : 'Install MyShift'}</button>
+        </div>
+      ` : ''}
       <div class="pl-faq">
         <div class="pl-faq-title">Pertanyaan Umum</div>
         ${FAQ_ITEMS.map((item, i) => `
@@ -236,6 +245,8 @@ function renderLanding() {
 
 function wireLanding() {
   app.querySelector('#pl-landing-start').addEventListener('click', () => { showLanding = false; render() })
+  const installBtn = app.querySelector('#pl-install-btn')
+  if (installBtn) installBtn.addEventListener('click', handleInstallClick)
   app.querySelectorAll('.pl-faq-q').forEach(btn => {
     btn.addEventListener('click', () => {
       const i = Number(btn.dataset.i)
@@ -243,6 +254,21 @@ function wireLanding() {
       render()
     })
   })
+}
+
+// iOS Safari gak support beforeinstallprompt — satu-satunya cara install PWA di sana
+// adalah manual lewat menu Share, jadi tombolnya cuma nunjukin caranya.
+async function handleInstallClick() {
+  if (isIOS) {
+    await customAlert('Tap ikon Share (kotak dengan panah ke atas) di bar Safari, lalu pilih "Tambah ke Layar Utama".', { title: 'Install di iPhone/iPad' })
+    return
+  }
+  if (!deferredInstallPrompt) return
+  deferredInstallPrompt.prompt()
+  await deferredInstallPrompt.userChoice
+  deferredInstallPrompt = null
+  installAvailable = false
+  render()
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1520,6 +1546,21 @@ window.addEventListener('scroll', () => {
   if (window.scrollY > 40) card.classList.add('floating')
   else card.classList.remove('floating')
 }, { passive: true })
+
+// ── PWA: service worker (syarat teknis buat prompt Install) + tangkap beforeinstallprompt ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {})
+}
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  deferredInstallPrompt = e
+  installAvailable = true
+  render()
+})
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null
+  installAvailable = false
+})
 
 // ── Boot ──
 ;(async () => {
