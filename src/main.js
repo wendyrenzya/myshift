@@ -194,6 +194,7 @@ function renderLanding() {
       <div class="pl-landing-hero">
         <div class="pl-landing-icon">${renderSplashTiles()}</div>
         <div class="pl-landing-title">MyShift</div>
+        <div style="margin:-14px 0 10px;font-size:11px;font-weight:600;letter-spacing:.02em;color:#9a978f">Powered by Qilo</div>
         <div class="pl-landing-sub">Susun shift tanpa perlu buka spreadsheet — cukup klik nama. Tanpa ribet ngetik, tanpa bikin tabel, tanpa copy-paste, dan langsung bagikan sebagai JPG atau PDF.</div>
         <button type="button" class="pl-landing-cta" id="pl-landing-start">
           <span>Mulai Sekarang</span>
@@ -219,11 +220,6 @@ function renderLanding() {
           <div class="pl-feature-card-title">Gratis Tanpa Langganan</div>
         </div>
       </div>
-      ${!isStandaloneApp && (installAvailable || isIOS) ? `
-        <div style="max-width:340px;margin:0 auto 28px;padding:0 12px">
-          <button type="button" class="pl-backup-btn" id="pl-install-btn">${svgIcon('download').replace('<svg ', '<svg style=\"width:16px;height:16px\" ')} ${isIOS ? 'Tambah ke Layar Utama' : 'Install MyShift'}</button>
-        </div>
-      ` : ''}
       <div class="pl-faq">
         <div class="pl-faq-title">Pertanyaan Umum</div>
         ${FAQ_ITEMS.map((item, i) => `
@@ -245,8 +241,6 @@ function renderLanding() {
 
 function wireLanding() {
   app.querySelector('#pl-landing-start').addEventListener('click', () => { showLanding = false; render() })
-  const installBtn = app.querySelector('#pl-install-btn')
-  if (installBtn) installBtn.addEventListener('click', handleInstallClick)
   app.querySelectorAll('.pl-faq-q').forEach(btn => {
     btn.addEventListener('click', () => {
       const i = Number(btn.dataset.i)
@@ -299,8 +293,11 @@ function renderScheduleHome() {
         `).join('')}
       </div>
     `}
-    <div style="text-align:center">
+    <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">
       <button type="button" class="pl-submit pl-submit-auto" id="pl-sched-add">+ Buat Jadwal Baru</button>
+      ${!isStandaloneApp && (installAvailable || isIOS) ? `
+        <button type="button" class="pl-backup-btn" id="pl-install-btn" style="width:auto;border-radius:999px;padding:11px 20px">${svgIcon('download').replace('<svg ', '<svg style=\"width:16px;height:16px\" ')} ${isIOS ? 'Tambah ke Layar Utama' : 'Install'}</button>
+      ` : ''}
     </div>
 
     <div class="pl-backup-box">
@@ -343,6 +340,8 @@ function renderScheduleHome() {
 
 function wireScheduleHome() {
   app.querySelector('#pl-sched-add').addEventListener('click', () => { showScheduleForm = true; render() })
+  const installBtn = app.querySelector('#pl-install-btn')
+  if (installBtn) installBtn.addEventListener('click', handleInstallClick)
   app.querySelectorAll('.pl-sched-card').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.pl-sched-del')) return
@@ -1560,6 +1559,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null
   installAvailable = false
+  render()
 })
 
 // ── Boot ──
