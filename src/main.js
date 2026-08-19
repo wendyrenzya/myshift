@@ -232,6 +232,9 @@ function renderLanding() {
           </div>
         `).join('')}
       </div>
+      <a href="https://renzya.my.id" target="_blank" rel="noopener" class="pl-feature-request-link">
+        ${svgIcon('externalLink').replace('<svg ', '<svg style="width:14px;height:14px" ')} Support kami dengan membeli ebook di sini
+      </a>
       <div style="text-align:center;padding:16px 0 8px">
         <a href="/privacy" target="_blank" rel="noopener" style="color:#6B6B6B;font-size:12.5px;font-weight:600">Kebijakan Privasi</a>
       </div>
