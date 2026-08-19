@@ -19,6 +19,52 @@ const FAQ_ITEMS = [
   { q: 'Berapa banyak jadwal & personil yang bisa dibuat?', a: 'Gak dibatasi — bisa bikin banyak jadwal (misalnya Shift Kantor, Shift Ronda Malam) dan masing-masing punya personil sendiri-sendiri.' },
 ]
 
+// Riwayat rilis — dipetakan dari histori commit git (dikelompokkan per rilis fitur, tanggal = commit terakhir grup itu)
+const APP_VERSION = '1.8.0'
+const CHANGELOG = [
+  { version: '1.8.0', date: '19 Agustus 2026', items: [
+    'MyShift sekarang bisa di-install jadi aplikasi (Android, Windows, desktop) — tombol Install di halaman List Jadwal',
+    'Tambah tautan dukung pengembang lewat ebook di renzya.my.id',
+  ] },
+  { version: '1.7.0', date: '17 Agustus 2026', items: [
+    'Efek spotlight saat mengisi personil shift — cell yang aktif tetap terang, sisanya redup',
+    'Perbaikan scroll otomatis ke cell yang lagi diisi',
+  ] },
+  { version: '1.6.0', date: '17 Agustus 2026', items: [
+    'Semua notifikasi & konfirmasi pakai popup custom senada tampilan app, gantiin popup bawaan browser',
+    'Perbaikan bug tampilan (ukuran input, seleksi teks otomatis)',
+    'Redesign lanjutan landing page',
+  ] },
+  { version: '1.5.0', date: '16 Agustus 2026', items: [
+    'Range waktu spesifik opsional per shift (misal 08:00–16:00), muncul di tampilan Matriks & saat dibagikan',
+  ] },
+  { version: '1.4.0', date: '16 Agustus 2026', items: [
+    'Redesign landing page — 4 kartu fitur & animasi logo splash',
+    'Ajakan dukung pengembang lewat ebook',
+    'Popup konfirmasi custom gantiin dialog bawaan browser',
+  ] },
+  { version: '1.3.0', date: '16 Agustus 2026', items: [
+    'Redesign visual navy + coral di seluruh app',
+    'Splash screen & logo baru',
+    'Redesign halaman Detail Jadwal & List Jadwal',
+  ] },
+  { version: '1.2.0', date: '16 Agustus 2026', items: [
+    'Tampilan Matriks — ringkas personil × hari',
+    'Backup & restore otomatis ke Google Drive',
+    'Halaman Kebijakan Privasi',
+  ] },
+  { version: '1.1.0', date: '15 Agustus 2026', items: [
+    'Bisa bikin banyak jadwal shift sekaligus (misal Shift Kantor & Shift Ronda Malam)',
+    'Catatan per minggu, duplikat jadwal minggu lalu, tandai personil libur',
+    'Landing page & FAQ pertama',
+  ] },
+  { version: '1.0.0', date: '14 Agustus 2026', items: [
+    'Rilis awal MyShift',
+    'Bagikan jadwal sebagai JPG/PDF',
+    'Onboarding, konfirmasi hapus personil, tombol Minggu Ini',
+  ] },
+]
+
 const app = document.getElementById('app')
 
 // ── State ──
@@ -32,6 +78,7 @@ let openFaqIndex = null          // index FAQ yang lagi kebuka
 let shiftSchedules = []          // daftar jadwal shift (Shift Kantor, Shift Ronda Malam, dst)
 let activeScheduleId = null      // jadwal yang lagi dibuka; null = halaman daftar jadwal
 let showScheduleForm = false     // sheet buat jadwal baru
+let showChangelogSheet = false   // popup riwayat update, dibuka dari badge versi di sebelah logo home
 let gridViewMode = 'old'         // 'old' (per-hari) atau 'new' (kartu per-shift) — dipilih lewat tombol Edit
 let showByNameView = false       // true = tampilan Lihat (matrix personil x hari, ringkas) — dipilih lewat tombol Lihat
 let shiftPersonnel = [], shiftConfig = null, shiftAssignments = []   // scoped ke activeScheduleId
@@ -274,7 +321,10 @@ async function handleInstallClick() {
 
 function renderScheduleHome() {
   return `
-    <div class="pl-sched-logo"><span class="pl-sched-logo-frame"><img src="/Full.png" alt="MyShift" /></span></div>
+    <div class="pl-sched-logo" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="pl-sched-logo-frame"><img src="/Full.png" alt="MyShift" /></span>
+      <button type="button" id="pl-version-badge" style="display:inline-flex;align-items:center;gap:4px;background:#eef0f4;color:#526176;border:1px solid #dfe3ea;border-radius:999px;padding:4px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;line-height:1.4">v${APP_VERSION}</button>
+    </div>
     <div class="pl-sched-intro">
       <div class="pl-sched-intro-title">List Jadwal</div>
       <div class="pl-sched-intro-sub">Tiap jadwal punya personil & jadwal mingguan sendiri-sendiri.</div>
@@ -338,6 +388,7 @@ function renderScheduleHome() {
     </a>
 
     ${showScheduleForm ? renderScheduleFormSheet() : ''}
+    ${showChangelogSheet ? renderChangelogSheet() : ''}
   `
 }
 
@@ -345,6 +396,7 @@ function wireScheduleHome() {
   app.querySelector('#pl-sched-add').addEventListener('click', () => { showScheduleForm = true; render() })
   const installBtn = app.querySelector('#pl-install-btn')
   if (installBtn) installBtn.addEventListener('click', handleInstallClick)
+  app.querySelector('#pl-version-badge').addEventListener('click', () => { showChangelogSheet = true; render() })
   app.querySelectorAll('.pl-sched-card').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.pl-sched-del')) return
@@ -370,6 +422,7 @@ function wireScheduleHome() {
   const driveDisconnectBtn = app.querySelector('#pl-drive-disconnect')
   if (driveDisconnectBtn) driveDisconnectBtn.addEventListener('click', driveDisconnect)
   if (showScheduleForm) wireScheduleFormSheet()
+  if (showChangelogSheet) wireChangelogSheet()
 }
 
 async function driveConnect() {
@@ -469,6 +522,36 @@ function wireScheduleFormSheet() {
   }
   app.querySelector('#pl-sched-form-done').addEventListener('click', submit)
   app.querySelector('#pl-sched-name-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit() } })
+}
+
+function renderChangelogSheet() {
+  return `
+    <div class="pl-overlay pl-overlay-center" id="pl-changelog-overlay">
+      <div class="pl-sheet pl-sheet-center">
+        <div class="pl-sheet-title">Riwayat Update</div>
+        <div style="display:flex;flex-direction:column;gap:18px;margin-top:4px">
+          ${CHANGELOG.map(v => `
+            <div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px">
+                <span style="font-size:.85rem;font-weight:800;color:var(--accent)">v${v.version}</span>
+                <span style="font-size:.72rem;color:var(--text-3)">${v.date}</span>
+              </div>
+              <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
+                ${v.items.map(it => `<li style="font-size:.8rem;color:var(--text-2);line-height:1.5">${esc(it)}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+        <button type="button" class="pl-submit" id="pl-changelog-done" style="margin-top:18px">Tutup</button>
+      </div>
+    </div>
+  `
+}
+
+function wireChangelogSheet() {
+  const overlay = app.querySelector('#pl-changelog-overlay')
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { showChangelogSheet = false; render() } })
+  app.querySelector('#pl-changelog-done').addEventListener('click', () => { showChangelogSheet = false; render() })
 }
 
 async function createSchedule(name) {
