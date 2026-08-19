@@ -24,7 +24,6 @@ const APP_VERSION = '1.8.0'
 const CHANGELOG = [
   { version: '1.8.0', date: '19 Agustus 2026', items: [
     'MyShift sekarang bisa di-install jadi aplikasi (Android, Windows, desktop) — tombol Install di halaman List Jadwal',
-    'Tambah tautan dukung pengembang lewat ebook di renzya.my.id',
   ] },
   { version: '1.7.0', date: '17 Agustus 2026', items: [
     'Efek spotlight saat mengisi personil shift — cell yang aktif tetap terang, sisanya redup',
@@ -40,7 +39,6 @@ const CHANGELOG = [
   ] },
   { version: '1.4.0', date: '16 Agustus 2026', items: [
     'Redesign landing page — 4 kartu fitur & animasi logo splash',
-    'Ajakan dukung pengembang lewat ebook',
     'Popup konfirmasi custom gantiin dialog bawaan browser',
   ] },
   { version: '1.3.0', date: '16 Agustus 2026', items: [
@@ -321,9 +319,10 @@ async function handleInstallClick() {
 
 function renderScheduleHome() {
   return `
-    <div class="pl-sched-logo" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <div class="pl-sched-logo" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="pl-sched-logo-frame"><img src="/Full.png" alt="MyShift" /></span>
-      <button type="button" id="pl-version-badge" style="display:inline-flex;align-items:center;gap:4px;background:#eef0f4;color:#526176;border:1px solid #dfe3ea;border-radius:999px;padding:4px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;line-height:1.4">v${APP_VERSION}</button>
+      <button type="button" id="pl-version-badge" style="display:inline-flex;align-items:center;background:#eef0f4;color:#526176;border:1px solid #dfe3ea;border-radius:999px;padding:4px 10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;line-height:1.4">v${APP_VERSION}</button>
+      <button type="button" id="pl-changelog-link" style="display:inline-flex;align-items:center;background:none;border:none;color:var(--coral);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;padding:4px 2px;text-decoration:underline">Changelog</button>
     </div>
     <div class="pl-sched-intro">
       <div class="pl-sched-intro-title">List Jadwal</div>
@@ -397,6 +396,7 @@ function wireScheduleHome() {
   const installBtn = app.querySelector('#pl-install-btn')
   if (installBtn) installBtn.addEventListener('click', handleInstallClick)
   app.querySelector('#pl-version-badge').addEventListener('click', () => { showChangelogSheet = true; render() })
+  app.querySelector('#pl-changelog-link').addEventListener('click', () => { showChangelogSheet = true; render() })
   app.querySelectorAll('.pl-sched-card').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.pl-sched-del')) return
