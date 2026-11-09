@@ -23,24 +23,27 @@
   <div class="wrap">
     <a class="back" href="/">&larr; Kembali ke MyShift</a>
     <h1>Kebijakan Privasi MyShift</h1>
-    <div class="updated">Terakhir diperbarui: 16 Agustus 2026</div>
+    <div class="updated">Terakhir diperbarui: 9 November 2026</div>
 
     <p>MyShift adalah aplikasi penjadwalan shift yang berjalan sepenuhnya di perangkat kamu. Halaman ini menjelaskan data apa saja yang diproses MyShift dan bagaimana MyShift memperlakukannya, termasuk saat kamu memilih menyambungkan Google Drive.</p>
 
     <h2>Data yang tersimpan di perangkat kamu</h2>
-    <p>Semua data jadwal — nama personil, jadwal shift, catatan, dan riwayat cuti — tersimpan langsung di penyimpanan lokal browser kamu (IndexedDB). Data ini <strong>tidak pernah dikirim ke server MyShift</strong>, karena MyShift tidak punya server atau database sendiri. Tidak ada akun yang dibutuhkan untuk memakai MyShift.</p>
+    <p>Semua data jadwal — nama personil, jadwal shift, catatan, dan riwayat cuti — tersimpan langsung di penyimpanan lokal browser kamu (IndexedDB). Data ini <strong>tidak pernah dikirim ke server MyShift</strong>, karena MyShift hanya menyimpan statistik penggunaan anonim (lihat bagian di bawah). Tidak ada akun yang dibutuhkan untuk memakai MyShift.</p>
 
     <h2>Integrasi Google Drive (opsional)</h2>
     <p>Kalau kamu memilih menyambungkan Google Drive untuk fitur Backup/Restore, berikut yang perlu kamu tahu:</p>
     <ul>
       <li>MyShift meminta izin akses dengan scope <code>drive.file</code> — scope paling sempit yang tersedia dari Google, artinya MyShift <strong>hanya bisa melihat atau mengubah file yang MyShift sendiri buat</strong> di Drive kamu (satu file bernama <code>myshift-backup.json</code>), dan tidak bisa mengakses file lain di Drive kamu.</li>
-      <li>Proses backup dan restore terjadi <strong>langsung antara browser kamu dan server Google</strong> — file backup tidak pernah melewati atau tersimpan di server MyShift, karena memang tidak ada server tersebut.</li>
+      <li>Proses backup dan restore terjadi <strong>langsung antara browser kamu dan server Google</strong> — file backup tidak pernah melewati atau tersimpan di server MyShift, karena MyShift tidak pernah menerima file tersebut.</li>
       <li>Sesi login Google bersifat sementara (session-only) dan tidak disimpan permanen oleh MyShift. Kamu mungkin perlu login ulang di sesi berikutnya.</li>
       <li>Kamu bisa memutus akses ini kapan saja lewat tombol "Putuskan Google Drive" di aplikasi, atau lewat halaman <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">izin akun Google</a> kamu.</li>
     </ul>
 
+    <h2>Statistik penggunaan anonim</h2>
+    <p>Supaya kami tahu berapa banyak orang yang memakai MyShift, aplikasi mengirim sinyal sederhana ke server MyShift: sebuah <strong>ID acak</strong> yang dibuat di perangkat kamu (bukan nama, email, atau akun Google), tanggal, dan jenis kejadiannya (membuka aplikasi, atau Backup/Restore berhasil). Sinyal pembukaan dikirim paling banyak sekali sehari. <strong>Isi jadwal, nama personil, dan isi file backup tidak pernah ikut terkirim.</strong> ID ini tidak bisa dihubungkan ke identitas kamu, tidak dibagikan ke pihak lain, dan hanya dipakai untuk menghitung jumlah pemakai. Menghapus data browser akan membuat ID baru. Kalau browser kamu mengaktifkan Do Not Track, sinyal ini tidak dikirim.</p>
+
     <h2>Berbagi data ke pihak ketiga</h2>
-    <p>MyShift tidak menjual, menyewakan, atau membagikan data kamu ke pihak ketiga mana pun. MyShift juga tidak menggunakan data kamu untuk iklan atau pelacakan.</p>
+    <p>MyShift tidak menjual, menyewakan, atau membagikan data kamu ke pihak ketiga mana pun. MyShift juga tidak menggunakan data kamu untuk iklan atau melacak individu.</p>
 
     <h2>Kontak</h2>
     <p>Ada pertanyaan soal privasi? Hubungi <a href="mailto:support@myshift.my.id">support@myshift.my.id</a>.</p>

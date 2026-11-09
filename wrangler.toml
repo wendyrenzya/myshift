@@ -1,4 +1,5 @@
 name = "myshift"
+main = "src/worker.js"
 compatibility_date = "2026-08-14"
 
 # Custom domain dideklarasikan di sini (bukan lewat dashboard) — Workers Static
@@ -7,7 +8,16 @@ routes = [
   { pattern = "myshift.my.id", custom_domain = true }
 ]
 
-# Situs statis murni (SPA satu halaman) — tidak ada logic di sisi Worker.
+# Situs statis (SPA satu halaman); Worker hanya menangani /api/stat.
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+# Hanya /api/* yang lewat Worker; sisanya langsung aset statis.
+run_worker_first = ["/api/*"]
 not_found_handling = "single-page-application"
+
+# Hitung anonim (lihat src/worker.js, dibaca read-only oleh qilo.one/dash).
+[[d1_databases]]
+binding = "DB"
+database_name = "myshift-stats"
+database_id = "8d8cefa3-7f19-4c44-b892-84ab44541faf"
